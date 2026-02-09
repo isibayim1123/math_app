@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MathApp - 数学学習</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a26;
+            --bg-card-hover: #22222f;
+            --accent: #6c63ff;
+            --accent-glow: rgba(108, 99, 255, 0.3);
+            --accent-soft: rgba(108, 99, 255, 0.12);
+            --success: #2dd4a8;
+            --success-soft: rgba(45, 212, 168, 0.12);
+            --error: #ff6b6b;
+            --error-soft: rgba(255, 107, 107, 0.12);
+            --warning: #ffc857;
+            --warning-soft: rgba(255, 200, 87, 0.12);
+            --text-primary: #e8e6f0;
+            --text-secondary: #8a879a;
+            --text-muted: #5a576b;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-accent: rgba(108, 99, 255, 0.3);
+            --radius: 16px;
+            --radius-sm: 10px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background: linear-gradient(rgba(108,99,255,0.03) 1px,transparent 1px),
+                        linear-gradient(90deg,rgba(108,99,255,0.03) 1px,transparent 1px);
+            background-size: 60px 60px; pointer-events: none; z-index: 0;
+        }
+        .header {
+            position: sticky; top: 0; z-index: 100;
+            backdrop-filter: blur(20px); background: rgba(10,10,15,0.8);
+            border-bottom: 1px solid var(--border); padding: 16px 24px;
+        }
+        .header-inner {
+            max-width: 800px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent), #a78bfa);
+            border-radius: 10px; display: flex; align-items: center;
+            justify-content: center; font-size: 18px; font-weight: 900; color: white;
+        }
+        .logo-text { font-weight: 700; font-size: 18px; letter-spacing: -0.5px; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .badge {
+            font-size: 11px; font-weight: 500; color: var(--accent);
+            background: var(--accent-soft); padding: 4px 10px;
+            border-radius: 20px; border: 1px solid var(--border-accent);
+        }
+        .settings-btn {
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-secondary); cursor: pointer;
+            font-size: 16px; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .settings-btn:hover { background: var(--bg-card); color: var(--text-primary); }
+        .main {
+            position: relative; z-index: 1;
+            max-width: 800px; margin: 0 auto; padding: 32px 24px 100px;
+        }
+
+        /* API Key - collapsible */
+        .api-key-section {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: var(--radius); margin-bottom: 24px; overflow: hidden;
+        }
+        .api-key-header {
+            padding: 14px 20px; cursor: pointer;
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 13px; font-weight: 500; color: var(--text-secondary);
+        }
+        .api-key-header:hover { color: var(--text-primary); }
+        .api-key-arrow { transition: transform 0.3s; }
+        .api-key-section.open .api-key-arrow { transform: rotate(180deg); }
+        .api-key-body { display: none; padding: 0 20px 16px; }
+        .api-key-section.open .api-key-body { display: block; }
+        .api-key-row { display: flex; gap: 8px; }
+        .api-key-input {
+            flex: 1; padding: 10px 14px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--bg-card);
+            color: var(--text-primary); font-family: 'JetBrains Mono', monospace;
+            font-size: 13px; outline: none;
+        }
+        .api-key-input:focus { border-color: var(--accent); }
+        .api-key-save {
+            padding: 10px 18px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border-accent); background: var(--accent-soft);
+            color: var(--accent); font-family: inherit; font-size: 13px;
+            font-weight: 600; cursor: pointer;
+        }
+        .api-key-save:hover { background: var(--accent); color: white; }
+        .api-key-status { font-size: 12px; margin-top: 8px; color: var(--text-muted); }
+        .api-key-status.saved { color: var(--success); }
+
+        /* Upload */
+        .upload-area {
+            border: 2px dashed var(--border); border-radius: var(--radius);
+            padding: 48px 24px; text-align: center; cursor: pointer;
+            transition: all 0.3s; background: var(--bg-secondary); position: relative;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--accent); background: rgba(108,99,255,0.05);
+        }
+        .upload-area.has-image { padding: 16px; border-style: solid; border-color: var(--border-accent); }
+        .upload-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.6; }
+        .upload-title { font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+        .upload-subtitle { font-size: 13px; color: var(--text-secondary); }
+        .upload-actions { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+        .upload-btn {
+            padding: 10px 20px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--bg-card);
+            color: var(--text-primary); font-family: inherit; font-size: 13px;
+            font-weight: 500; cursor: pointer; display: flex; align-items: center;
+            gap: 6px; transition: all 0.2s;
+        }
+        .upload-btn:hover { background: var(--bg-card-hover); border-color: var(--accent); }
+        .preview-container { position: relative; display: none; }
+        .preview-container.visible { display: block; }
+        .preview-img { max-width: 100%; max-height: 400px; border-radius: var(--radius-sm); display: block; margin: 0 auto; }
+        .preview-remove {
+            position: absolute; top: 8px; right: 8px;
+            width: 32px; height: 32px; border-radius: 50%; border: none;
+            background: rgba(0,0,0,0.7); color: white; cursor: pointer;
+            font-size: 16px; display: flex; align-items: center; justify-content: center;
+        }
+        #fileInput, #cameraInput { display: none; }
+
+        /* Analyze button */
+        .analyze-section { margin-top: 24px; }
+        .analyze-btn {
+            width: 100%; padding: 16px 32px; border: none; border-radius: var(--radius);
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white; font-family: inherit; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
+        }
+        .analyze-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow); }
+        .analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .analyze-btn.loading { pointer-events: none; }
+        .analyze-btn.loading .btn-text { opacity: 0; }
+        .spinner { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; }
+        .loading .spinner { display: flex; }
+        .spinner-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: white;
+            margin: 0 4px; animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .spinner-dot:nth-child(1) { animation-delay: -0.32s; }
+        .spinner-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%,80%,100%{transform:scale(0)} 40%{transform:scale(1)} }
+
+        /* ── Score Display ── */
+        .score-display {
+            text-align: center; padding: 32px 24px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); margin-bottom: 16px;
+            animation: fadeInUp 0.4s ease;
+        }
+        .score-circle {
+            width: 120px; height: 120px; border-radius: 50%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            margin: 0 auto 16px; position: relative;
+        }
+        .score-circle::before {
+            content: ''; position: absolute; inset: 0;
+            border-radius: 50%; border: 6px solid var(--border);
+        }
+        .score-circle::after {
+            content: ''; position: absolute; inset: 0;
+            border-radius: 50%; border: 6px solid transparent;
+            border-top-color: var(--accent);
+            animation: spin-in 0.6s ease-out;
+        }
+        .score-circle.perfect::after { border-color: var(--success); }
+        .score-circle.good::after { border-top-color: var(--success); border-right-color: var(--success); }
+        .score-circle.mid::after { border-top-color: var(--warning); border-right-color: var(--warning); }
+        .score-circle.low::after { border-top-color: var(--error); }
+        @keyframes spin-in { from { transform: rotate(-90deg); opacity: 0; } to { transform: rotate(0); opacity: 1; } }
+
+        .score-number { font-size: 36px; font-weight: 900; line-height: 1; }
+        .score-max { font-size: 14px; color: var(--text-secondary); font-weight: 400; }
+        .score-message { font-size: 15px; font-weight: 500; margin-top: 4px; }
+        .score-message.perfect { color: var(--success); }
+        .score-message.good { color: var(--success); }
+        .score-message.mid { color: var(--warning); }
+        .score-message.low { color: var(--error); }
+
+        /* Results cards */
+        .results-section { margin-top: 32px; display: none; }
+        .results-section.visible { display: block; }
+        .result-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; margin-bottom: 16px;
+            animation: fadeInUp 0.4s ease;
+        }
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        .result-title {
+            font-size: 13px; font-weight: 600; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .math-block {
+            background: rgba(0,0,0,0.3); border-radius: var(--radius-sm);
+            padding: 16px; margin: 8px 0; text-align: center;
+            border: 1px solid var(--border); overflow-x: auto; font-size: 1.2em;
+        }
+        .math-block .katex-display { margin: 0; }
+        .mixed-text { line-height: 1.9; font-size: 14px; }
+        .mixed-text .katex { font-size: 1.1em; }
+
+        /* Formula box */
+        .formula-box {
+            background: rgba(108,99,255,0.06); border: 1px solid var(--border-accent);
+            border-radius: var(--radius-sm); padding: 16px; margin-top: 12px;
+        }
+        .formula-box-title {
+            font-size: 12px; font-weight: 600; color: var(--accent);
+            margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .formula-item {
+            padding: 8px 0; border-bottom: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .formula-item:last-child { border-bottom: none; }
+        .formula-name { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .formula-expr { font-size: 1.1em; padding: 6px 0; }
+
+        /* ── Unit Tags ── */
+        .unit-section {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 24px; margin-bottom: 16px;
+            animation: fadeInUp 0.5s ease;
+        }
+        .unit-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+        .unit-tag {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 13px; font-weight: 500; cursor: pointer;
+            transition: all 0.2s; border: 1px solid;
+        }
+        .unit-tag.math1a { background: rgba(99,179,237,0.1); color: #63b3ed; border-color: rgba(99,179,237,0.3); }
+        .unit-tag.math1a:hover { background: rgba(99,179,237,0.2); transform: translateY(-1px); }
+        .unit-tag.math2b { background: rgba(129,230,217,0.1); color: #81e6d9; border-color: rgba(129,230,217,0.3); }
+        .unit-tag.math2b:hover { background: rgba(129,230,217,0.2); transform: translateY(-1px); }
+        .unit-tag.math3c { background: rgba(183,148,244,0.1); color: #b794f4; border-color: rgba(183,148,244,0.3); }
+        .unit-tag.math3c:hover { background: rgba(183,148,244,0.2); transform: translateY(-1px); }
+        .unit-tag-arrow { font-size: 11px; opacity: 0.6; }
+
+        /* ── Learning Panel ── */
+        .learning-overlay {
+            display: none; position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+            animation: fadeIn 0.2s ease;
+        }
+        .learning-overlay.visible { display: flex; align-items: flex-end; justify-content: center; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+        .learning-panel {
+            width: 100%; max-width: 800px; max-height: 85vh;
+            background: var(--bg-primary); border-radius: var(--radius) var(--radius) 0 0;
+            overflow-y: auto; animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+
+        .learning-header {
+            position: sticky; top: 0; z-index: 10;
+            background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+            padding: 20px 24px; display: flex; align-items: center; justify-content: space-between;
+        }
+        .learning-title { font-size: 16px; font-weight: 700; }
+        .learning-close {
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+            background: transparent; color: var(--text-secondary); cursor: pointer;
+            font-size: 18px; display: flex; align-items: center; justify-content: center;
+        }
+        .learning-close:hover { background: var(--bg-card); color: var(--text-primary); }
+        .learning-body { padding: 24px; }
+        .learning-loading { text-align: center; padding: 60px 0; color: var(--text-secondary); }
+
+        .hint-card {
+            background: var(--warning-soft); border: 1px solid rgba(255,200,87,0.2);
+            border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+        }
+        .error-card {
+            background: var(--error-soft); border: 1px solid rgba(255,107,107,0.2);
+            border-radius: var(--radius); padding: 20px; margin-bottom: 16px;
+        }
+        .error-card .result-title { color: var(--error); }
+
+        .step-list { list-style: none; margin-top: 12px; }
+        .step-item {
+            padding: 16px; border-left: 3px solid var(--accent);
+            margin-bottom: 12px; background: rgba(108,99,255,0.04);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+        .step-number {
+            font-size: 11px; font-weight: 700; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+        }
+        .step-desc { font-size: 14px; line-height: 1.8; margin-bottom: 8px; }
+        .step-math {
+            font-size: 1.1em; color: var(--accent); background: rgba(0,0,0,0.2);
+            padding: 10px 14px; border-radius: 6px; display: inline-block; margin-top: 4px;
+        }
+
+        .meta-bar {
+            display: flex; gap: 20px; margin-top: 16px;
+            padding-top: 16px; border-top: 1px solid var(--border);
+        }
+        .meta-item { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .meta-label { color: var(--text-secondary); }
+
+
+        /* ═══ Screen Navigation (Global) ═══ */
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .nav-bar {
+            display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-back {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+            color: var(--text-primary); padding: 8px 14px; font-size: 14px; cursor: pointer;
+            display: flex; align-items: center; gap: 6px; transition: 0.2s; font-family: inherit;
+        }
+        .nav-back:hover { background: var(--bg-card-hover); }
+        .nav-title { font-size: 16px; font-weight: 700; }
+        .nav-subtitle { font-size: 12px; color: var(--text-secondary); }
+        /* Subject Tabs */
+        .subject-tabs {
+            display: flex; gap: 8px; padding: 16px 20px 8px; overflow-x: auto;
+            -webkit-overflow-scrolling: touch; max-width: 800px; margin: 0 auto;
+        }
+        .subject-tab {
+            padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
+            border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary);
+            cursor: pointer; white-space: nowrap; transition: 0.2s; font-family: inherit;
+        }
+        .subject-tab:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+        .subject-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        /* Unit Grid */
+        .unit-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+            padding: 12px 20px 100px; max-width: 800px; margin: 0 auto;
+        }
+        .unit-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 16px; cursor: pointer; transition: 0.2s; position: relative; overflow: hidden;
+        }
+        .unit-card:hover { border-color: var(--border-accent); transform: translateY(-2px); }
+        .unit-card-subject { font-size: 11px; font-weight: 600; opacity: 0.7; margin-bottom: 6px; }
+        .unit-card-name { font-size: 14px; font-weight: 700; margin-bottom: 8px; line-height: 1.4; }
+        .unit-card-meta { font-size: 11px; color: var(--text-muted); }
+        .unit-card.math1a { border-left: 3px solid #6c63ff; }
+        .unit-card.math2b { border-left: 3px solid #2dd4a8; }
+        .unit-card.math3c { border-left: 3px solid #ff6b9d; }
+        .unit-card-subject.math1a { color: #6c63ff; }
+        .unit-card-subject.math2b { color: #2dd4a8; }
+        .unit-card-subject.math3c { color: #ff6b9d; }
+        /* Sub-unit List */
+        .subunit-section { padding: 0 20px 16px; max-width: 800px; margin: 0 auto; }
+        .subunit-group { margin-bottom: 20px; }
+        .subunit-group-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; padding-left: 4px; }
+        .subunit-item {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .subunit-item:hover { border-color: var(--border-accent); }
+        .subunit-name { font-size: 14px; font-weight: 500; }
+        .subunit-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .subunit-arrow { color: var(--text-muted); font-size: 18px; }
+        /* Problem List */
+        .problem-list { padding: 0 20px 20px; }
+        .problem-item {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 14px 16px; margin-bottom: 8px; cursor: pointer; transition: 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .problem-item:hover { border-color: var(--border-accent); }
+        .problem-title { font-size: 14px; font-weight: 500; }
+        .diff-badge {
+            font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+        }
+        .diff-badge.basic { background: var(--success-soft); color: var(--success); }
+        .diff-badge.standard { background: var(--warning-soft); color: var(--warning); }
+        .diff-badge.advanced { background: var(--error-soft); color: var(--error); }
+        /* Problem Display */
+        .problem-display {
+            background: var(--bg-card); border: 1px solid var(--border-accent); border-radius: var(--radius);
+            padding: 24px; margin: 16px 20px; max-width: 800px;
+        }
+        .problem-display-title { font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 12px; }
+        .problem-display-text { font-size: 16px; line-height: 1.8; }
+        .problem-display-hint {
+            margin-top: 16px; padding: 12px; background: var(--warning-soft);
+            border-radius: var(--radius-sm); font-size: 13px; color: var(--warning);
+            cursor: pointer;
+        }
+        .problem-display-hint.revealed { cursor: default; }
+        .free-mode-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            margin: 0 20px 16px; padding: 14px; border-radius: var(--radius);
+            background: var(--bg-card); border: 1px dashed var(--border);
+            color: var(--text-secondary); font-size: 14px; cursor: pointer; transition: 0.2s;
+            max-width: 800px;
+        }
+        .free-mode-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .overview-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 16px 20px; margin: 12px 20px; max-width: 800px;
+        }
+        .overview-card p { font-size: 14px; line-height: 1.7; color: var(--text-secondary); }
+        .empty-state {
+            text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .main { padding: 20px 16px 80px; }
+            .upload-area { padding: 32px 16px; }
+            .upload-actions { flex-direction: column; align-items: stretch; }
+            .api-key-row { flex-direction: column; }
+            .meta-bar { flex-wrap: wrap; gap: 12px; }
+            .learning-panel { max-height: 90vh; }
+            .unit-grid { grid-template-columns: 1fr 1fr; }
+            .score-circle { width: 100px; height: 100px; }
+            .score-number { font-size: 30px; }
+        }
+
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-inner">
+        <div class="logo" onclick="navigateTo('home')" style="cursor:pointer">
+            <div class="logo-icon">∑</div>
+            <span class="logo-text">MathApp</span>
+        </div>
+        <div class="header-right">
+            <span class="badge">PoC v0.4</span>
+            <button class="settings-btn" onclick="toggleApiKey()" title="API設定">⚙</button>
+        </div>
+    </div>
+</header>
+
+<!-- ═══ API Key (shared across screens) ═══ -->
+<div class="api-key-section" id="apiKeySection" style="margin:0 auto;max-width:520px;">
+    <div class="api-key-header" onclick="toggleApiKey()">
+        <span>🔑 API設定</span>
+        <span class="api-key-arrow">▼</span>
+    </div>
+    <div class="api-key-body">
+        <div class="api-key-row">
+            <input type="password" class="api-key-input" id="apiKeyInput" placeholder="sk-...">
+            <button class="api-key-save" onclick="saveApiKey()">保存</button>
+        </div>
+        <div class="api-key-status" id="apiKeyStatus">APIキーを入力してください</div>
+    </div>
+</div>
+
+<!-- ═══ Screen: Home (単元一覧) ═══ -->
+<div id="screen-home" class="screen active">
+    <div class="subject-tabs" id="subjectTabs"></div>
+    <div class="free-mode-btn" onclick="navigateTo('free')">📷 フリー採点モード（単元を指定せず自由に採点）</div>
+    <div class="unit-grid" id="unitGrid"></div>
+</div>
+
+<!-- ═══ Screen: Unit Detail (単元詳細 → 小単元・問題一覧) ═══ -->
+<div id="screen-unit" class="screen">
+    <div class="nav-bar">
+        <button class="nav-back" onclick="navigateTo('home')">← 戻る</button>
+        <div>
+            <div class="nav-title" id="unitDetailTitle"></div>
+            <div class="nav-subtitle" id="unitDetailSubject"></div>
+        </div>
+    </div>
+    <div class="overview-card" id="unitOverview"></div>
+    <div class="subunit-section" id="subunitList"></div>
+</div>
+
+<!-- ═══ Screen: Problem (問題表示 + 答案アップロード + 採点) ═══ -->
+<div id="screen-problem" class="screen">
+    <div class="nav-bar">
+        <button class="nav-back" id="problemBackBtn" onclick="navigateBack()">← 戻る</button>
+        <div>
+            <div class="nav-title" id="problemScreenTitle"></div>
+            <div class="nav-subtitle" id="problemScreenSub"></div>
+        </div>
+    </div>
+
+    <!-- Problem display (hidden in free mode) -->
+    <div class="problem-display" id="problemDisplay" style="display:none">
+        <div class="problem-display-title" id="problemDifficulty"></div>
+        <div class="problem-display-text mixed-text" id="problemText"></div>
+        <div class="problem-display-hint" id="problemHint" style="display:none" onclick="revealHint(this)">
+            💡 ヒントを見る
+        </div>
+    </div>
+
+    <main class="main">
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+            <div id="uploadPrompt">
+                <div class="upload-icon">📷</div>
+                <div class="upload-title">解いた答案を撮影・アップロード</div>
+                <div class="upload-subtitle">AIが採点して、つまずきポイントを教えてくれます</div>
+                <div class="upload-actions">
+                    <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">📁 ファイル選択</button>
+                    <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('cameraInput').click()">📸 カメラで撮影</button>
+                </div>
+            </div>
+            <div class="preview-container" id="previewContainer">
+                <img id="previewImg" class="preview-img" alt="プレビュー">
+                <button class="preview-remove" onclick="event.stopPropagation(); removeImage()" title="削除">✕</button>
+            </div>
+        </div>
+
+        <input type="file" id="fileInput" accept="image/*" onchange="handleFileSelect(event)">
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" onchange="handleFileSelect(event)">
+
+        <div class="analyze-section">
+            <button class="analyze-btn" id="analyzeBtn" disabled onclick="analyze()">
+                <span class="btn-text" id="btnText">答案をアップロードしてください</span>
+                <div class="spinner"><div class="spinner-dot"></div><div class="spinner-dot"></div><div class="spinner-dot"></div></div>
+            </button>
+        </div>
+
+        <div class="results-section" id="resultsSection"></div>
+    </main>
+</div>
+
+<!-- ═══ Screen: Free Mode (フリー採点) ═══ -->
+<div id="screen-free" class="screen">
+    <!-- Redirects to screen-problem with free mode context -->
+</div>
+
+<!-- Learning Panel Overlay -->
+<div class="learning-overlay" id="learningOverlay" onclick="closeLearning(event)">
+    <div class="learning-panel" onclick="event.stopPropagation()">
+        <div class="learning-header">
+            <span class="learning-title" id="learningTitle">単元学習</span>
+            <button class="learning-close" onclick="closeLearning()">✕</button>
+        </div>
+        <div class="learning-body" id="learningBody"></div>
+    </div>
+</div>
+
+<script>
+let selectedFile = null;
+let base64Image = null;
+let apiKey = '';
+
+// ═══ Init ═══
+(function init() {
+    const saved = localStorage.getItem('openai_api_key');
+    if (saved) {
+        apiKey = saved;
+        document.getElementById('apiKeyInput').value = saved;
+        document.getElementById('apiKeyStatus').textContent = '✓ 設定済み';
+        document.getElementById('apiKeyStatus').className = 'api-key-status saved';
+    } else {
+        document.getElementById('apiKeySection').classList.add('open');
+    }
+})();
+
+function toggleApiKey() {
+    document.getElementById('apiKeySection').classList.toggle('open');
+}
+
+function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) return;
+    apiKey = key;
+    localStorage.setItem('openai_api_key', key);
+    document.getElementById('apiKeyStatus').textContent = '✓ 保存済み';
+    document.getElementById('apiKeyStatus').className = 'api-key-status saved';
+    setTimeout(() => toggleApiKey(), 500);
+}
+
+// ═══ File Handling ═══
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        base64Image = e.target.result;
+        document.getElementById('previewImg').src = base64Image;
+        document.getElementById('previewContainer').classList.add('visible');
+        document.getElementById('uploadPrompt').style.display = 'none';
+        document.getElementById('uploadArea').classList.add('has-image');
+        document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('btnText').textContent = '採点する';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeImage() {
+    selectedFile = null; base64Image = null;
+    document.getElementById('previewContainer').classList.remove('visible');
+    document.getElementById('uploadPrompt').style.display = 'block';
+    document.getElementById('uploadArea').classList.remove('has-image');
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('cameraInput').value = '';
+    document.getElementById('resultsSection').style.display = 'none';
+    document.getElementById('btnText').textContent = '答案をアップロードしてください';
+}
+
+const uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault(); uploadArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const dt = new DataTransfer(); dt.items.add(file);
+        document.getElementById('fileInput').files = dt.files;
+        handleFileSelect({ target: { files: [file] } });
+    }
+});
+
+// ═══ Math Rendering ═══
+function renderMathBlock(latex) {
+    if (!latex || latex === '—') return escHtml(latex || '');
+    let expr = latex.trim();
+    if (expr.startsWith('$$') && expr.endsWith('$$')) expr = expr.slice(2,-2).trim();
+    else if (expr.startsWith('$') && expr.endsWith('$')) expr = expr.slice(1,-1).trim();
+    else if (expr.startsWith('\\[') && expr.endsWith('\\]')) expr = expr.slice(2,-2).trim();
+    else if (expr.startsWith('\\(') && expr.endsWith('\\)')) expr = expr.slice(2,-2).trim();
+    try { return katex.renderToString(expr, { displayMode: true, throwOnError: false }); }
+    catch (e) { return '<code>' + escHtml(latex) + '</code>'; }
+}
+
+function renderMixedText(text) {
+    if (!text) return '';
+    const result = [];
+    let i = 0;
+    while (i < text.length) {
+        if (text[i] === '$' && text[i+1] === '$') {
+            const end = text.indexOf('$$', i+2);
+            if (end !== -1) {
+                try { result.push(katex.renderToString(text.slice(i+2,end).trim(), {displayMode:true,throwOnError:false})); }
+                catch(e) { result.push('<code>'+escHtml(text.slice(i+2,end))+'</code>'); }
+                i = end+2; continue;
+            }
+        }
+        if (text[i] === '$') {
+            const end = text.indexOf('$', i+1);
+            if (end !== -1 && end > i+1) {
+                const expr = text.slice(i+1, end);
+                if (expr.trim()) {
+                    try { result.push(katex.renderToString(expr.trim(), {displayMode:false,throwOnError:false})); }
+                    catch(e) { result.push('<code>'+escHtml(expr)+'</code>'); }
+                    i = end+1; continue;
+                }
+            }
+        }
+        if (text[i] === '\\' && text[i+1] === '(') {
+            const end = text.indexOf('\\)', i+2);
+            if (end !== -1) {
+                try { result.push(katex.renderToString(text.slice(i+2,end).trim(), {displayMode:false,throwOnError:false})); }
+                catch(e) { result.push('<code>'+escHtml(text.slice(i+2,end))+'</code>'); }
+                i = end+2; continue;
+            }
+        }
+        if (text[i] === '\\' && text[i+1] === '[') {
+            const end = text.indexOf('\\]', i+2);
+            if (end !== -1) {
+                try { result.push(katex.renderToString(text.slice(i+2,end).trim(), {displayMode:true,throwOnError:false})); }
+                catch(e) { result.push('<code>'+escHtml(text.slice(i+2,end))+'</code>'); }
+                i = end+2; continue;
+            }
+        }
+        if (text[i] === '\n') { result.push('<br>'); i++; continue; }
+        let j = i;
+        while (j < text.length && text[j] !== '$' && text[j] !== '\n' &&
+               !(text[j]==='\\' && (text[j+1]==='(' || text[j+1]==='['))) j++;
+        result.push(escHtml(text.slice(i,j)));
+        i = j;
+    }
+    return result.join('');
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══ Unit & Formula Database (from Notion) ═══
+const UNIT_DB = {
+    "expressions": { name: "数と式", subject: "数学Ⅰ", category: "math1a", order: 1, summary: "展開・因数分解、実数の分類、1次不等式など、数学の基礎となる計算力を身につける単元", tips: "因数分解は展開の逆操作。乗法公式を逆向きに使う練習が重要\n絶対値の問題は中身の正負で場合分け\n不等式では両辺に負の数をかけると不等号が逆転", formulas: ["square_of_sum","square_of_diff","diff_of_squares"] },
+    "sets_logic": { name: "集合と命題", subject: "数学Ⅰ", category: "math1a", order: 2, summary: "集合の表し方、共通部分・和集合、命題の真偽、必要条件・十分条件について学ぶ", tips: "ベン図を描いて集合の関係を視覚的に理解する\n「p⇒q」が真のとき、pはqの十分条件、qはpの必要条件\n反例を1つ見つければ命題は偽", formulas: [] },
+    "quadratic_function": { name: "二次関数", subject: "数学Ⅰ", category: "math1a", order: 3, summary: "二次関数のグラフ、平方完成、最大値・最小値、二次方程式・二次不等式を扱う重要単元", tips: "平方完成で標準形 y=a(x-p)²+q にすると頂点・軸がすぐわかる\n定義域が限られるときは軸と定義域の位置関係で場合分け\n二次不等式はグラフを描いてx軸との位置関係で解く", formulas: ["quadratic_formula","quadratic_standard","discriminant"] },
+    "trigonometric_ratio": { name: "図形と計量", subject: "数学Ⅰ", category: "math1a", order: 4, summary: "三角比（sin, cos, tan）の定義、相互関係、正弦定理・余弦定理を用いた図形の計量", tips: "sin, cos, tanは直角三角形の辺の比。単位円でもイメージできる\n正弦定理は「角と向かい合う辺」、余弦定理は「3辺と1角」の関係\n三角比の相互関係 sin²θ+cos²θ=1 は最重要", formulas: ["sine_rule","cosine_rule","trig_identity","triangle_area_sin"] },
+    "data_analysis": { name: "データの分析", subject: "数学Ⅰ", category: "math1a", order: 5, summary: "平均値、中央値、分散、標準偏差、相関係数など統計的な指標の意味と計算方法", tips: "分散は「二乗の平均−平均の二乗」の公式が計算しやすい\n相関係数は直線的な関係の強さを示し、因果関係とは異なる\n箱ひげ図は四分位数の理解が必要", formulas: ["variance","correlation"] },
+    "probability": { name: "場合の数と確率", subject: "数学A", category: "math1a", order: 6, summary: "順列・組合せの計算、確率の基本、条件付き確率、期待値について学ぶ", tips: "「並べる」なら順列P、「選ぶだけ」なら組合せCと使い分ける\n「少なくとも1つ」は余事象（1つもない確率）を引く\n条件付き確率は分母が条件の事象になる", formulas: ["permutation","combination","prob_addition","complementary_prob"] },
+    "geometry_properties": { name: "図形の性質", subject: "数学A", category: "math1a", order: 7, summary: "三角形の五心、円の性質、メネラウス・チェバの定理、作図について学ぶ", tips: "メネラウスの定理は「三角形の辺の延長上の3点が一直線上」の条件\n円に内接する四角形の対角の和は180°\n接線の長さの性質（円外の点からの2接線は等しい）", formulas: ["menelaus","ceva"] },
+    "integer_properties": { name: "整数の性質", subject: "数学A", category: "math1a", order: 8, summary: "約数・倍数、ユークリッドの互除法、不定方程式、合同式の基礎", tips: "ユークリッドの互除法は「割り算を繰り返して余りが0になるまで」\n不定方程式 ax+by=gcd(a,b) には必ず整数解が存在\n余りで場合分け（偶奇、3の倍数など）が有効な手法", formulas: ["euclidean_algorithm"] },
+    "equations_proof": { name: "式と証明", subject: "数学Ⅱ", category: "math2b", order: 9, summary: "恒等式の証明、等式・不等式の証明、二項定理、剰余の定理など", tips: "恒等式の証明は「左辺−右辺＝0」を示す方法が基本\n二項定理の一般項はC(n,r)·a^(n-r)·b^r\n剰余の定理：P(x)を(x-a)で割った余りはP(a)", formulas: ["binomial_theorem","remainder_theorem"] },
+    "complex_equations": { name: "複素数と方程式", subject: "数学Ⅱ", category: "math2b", order: 10, summary: "複素数の計算、解と係数の関係、剰余の定理、高次方程式の解法", tips: "虚数単位 i²=-1 さえ抑えれば計算は実数と同じ\n解と係数の関係：和と積が係数から求まる\n高次方程式は因数定理で解を探して次数を下げる", formulas: ["vieta_formulas","remainder_theorem"] },
+    "coordinate_geometry": { name: "図形と方程式", subject: "数学Ⅱ", category: "math2b", order: 11, summary: "点の座標、直線の方程式、円の方程式、軌跡、領域の図示", tips: "点と直線の距離の公式 |ax₀+by₀+c|/√(a²+b²) は頻出\n円の方程式は「中心と半径」を読み取る\n不等式の表す領域は「境界線」と「向き（上下）」で判断", formulas: ["point_line_distance","circle_equation"] },
+    "trigonometric_function": { name: "三角関数", subject: "数学Ⅱ", category: "math2b", order: 12, summary: "弧度法、三角関数のグラフ、加法定理、合成、三角方程式", tips: "弧度法の変換：180°=π を基本に角度と弧度を行き来する\n加法定理から倍角・半角の公式が導出できる\n合成 a·sinθ+b·cosθ=r·sin(θ+α) は最大最小問題で必須", formulas: ["sin_addition","cos_addition","trig_synthesis","double_angle_sin","double_angle_cos"] },
+    "exponential_logarithm": { name: "指数関数・対数関数", subject: "数学Ⅱ", category: "math2b", order: 13, summary: "指数法則、指数関数・対数関数のグラフ、対数の性質と計算", tips: "指数と対数は逆演算の関係：a^x=M ⇔ x=log_a(M)\n対数の計算は3法則（和→積、差→商、定数倍→べき乗）\n底の変換公式 log_a(b)=log_c(b)/log_c(a) で底を揃える", formulas: ["log_properties","log_base_change"] },
+    "differentiation_2": { name: "微分法", subject: "数学Ⅱ", category: "math2b", order: 14, summary: "微分係数、導関数の計算、接線の方程式、関数の増減・極値", tips: "微分は「変化の割合」を求める操作。グラフの傾き\n(x^n)'=nx^(n-1) が基本。定数の微分は0\nf'(x)=0 となる点で極値をとる可能性→増減表で確認", formulas: ["power_derivative","tangent_line"] },
+    "integration_2": { name: "積分法", subject: "数学Ⅱ", category: "math2b", order: 15, summary: "不定積分、定積分、面積の計算", tips: "積分は微分の逆操作。「微分したら元に戻る」関数を探す\n定積分は「面積」のイメージ。x軸の下は負になる\n面積の「1/6公式」「1/12公式」は放物線と直線で頻出", formulas: ["area_one_sixth"] },
+    "sequences": { name: "数列", subject: "数学B", category: "math2b", order: 16, summary: "等差数列・等比数列、いろいろな数列の和、漸化式、数学的帰納法", tips: "等差数列は「差が一定」、等比数列は「比が一定」\n漸化式は「特性方程式」で解くのが基本パターン\n数学的帰納法はn=1で確認、n=k→n=k+1を示す", formulas: ["arithmetic_seq","arithmetic_sum","geometric_seq","geometric_sum"] },
+    "statistical_inference": { name: "統計的な推測", subject: "数学B", category: "math2b", order: 17, summary: "確率分布、正規分布、信頼区間、仮説検定の基礎", tips: "正規分布 N(μ,σ²) の標準化：Z=(X-μ)/σ\n信頼区間 95% は Z=±1.96 が用いられる\n仮説検定は「帰無仮説を立てて棄却できるか」を判断", formulas: ["z_score","confidence_interval"] },
+    "limits": { name: "極限", subject: "数学Ⅲ", category: "math3c", order: 18, summary: "数列の極限、無限級数、関数の極限、連続性", tips: "数列の極限は「最高次の項で割る」のが定石\n無限等比級数は |r|<1 のとき a/(1-r) に収束\nはさみうちの原理は極限の存在証明に使う", formulas: ["infinite_geometric_series","e_definition"] },
+    "differentiation_3": { name: "微分法（数Ⅲ）", subject: "数学Ⅲ", category: "math3c", order: 19, summary: "合成関数・逆関数の微分、媒介変数表示の微分、接線・法線、速度・加速度", tips: "合成関数の微分は「外側の微分×内側の微分」（連鎖律則）\ne^x, sin x, cos x, log x の微分は基本中の基本\n媒介変数表示は dy/dx = (dy/dt)/(dx/dt)", formulas: ["power_derivative","tangent_line","chain_rule","trig_derivatives","exp_log_derivatives"] },
+    "integration_3": { name: "積分法（数Ⅲ）", subject: "数学Ⅲ", category: "math3c", order: 20, summary: "置換積分、部分積分、各種関数の積分、面積・体積・弧長", tips: "置換積分は「中身をtと置く」で複雑な積分を単純化\n部分積分は「積の微分」を逆に使う。∫fg'dx=fg-∫f'gdx\n回転体の体積 V=π∫y²dx は頻出パターン", formulas: ["integration_by_parts","volume_rotation"] },
+    "vectors": { name: "ベクトル", subject: "数学C", category: "math3c", order: 21, summary: "平面ベクトル、空間ベクトル、内積、位置ベクトル、ベクトル方程式", tips: "ベクトルは「向きと大きさ」を持つ量。矢印でイメージ\n内積 a·b = |a||b|cosθ は垂直判定や角度計算に使う\n位置ベクトルを使うと分点・重心が簡単に求まる", formulas: ["dot_product","dot_product_components"] },
+    "plane_curves": { name: "平面上の曲線", subject: "数学C", category: "math3c", order: 22, summary: "二次曲線（放物線・楕円・双曲線）、媒介変数表示、極座標", tips: "二次曲線は焦点と準線からの距離の比（離心率）で分類\n楕円 x²/a²+y²/b²=1、双曲線 x²/a²-y²/b²=1\n極座標 (r,θ) と直交座標 (x,y) の相互変換が基本", formulas: ["ellipse","hyperbola","polar_conversion"] },
+    "complex_plane": { name: "複素数平面", subject: "数学C", category: "math3c", order: 23, summary: "複素数の図形的意味、極形式、ド・モアブルの定理、回転と拡大", tips: "複素数の積は「絶対値の積、偏角の和」\nド・モアブルの定理 (cosθ+i·sinθ)^n = cos(nθ)+i·sin(nθ)\n複素数のかけ算は回転と拡大の合成変換", formulas: ["complex_polar","de_moivre"] },
+};
+
+const FORMULA_DB = {
+    "square_of_sum": { name: "乗法公式（和の二乗）", latex: "(a+b)^2 = a^2 + 2ab + b^2", desc: "展開・因数分解の基本。逆向きに使うと因数分解になる" },
+    "square_of_diff": { name: "乗法公式（差の二乗）", latex: "(a-b)^2 = a^2 - 2ab + b^2", desc: "展開・因数分解の基本" },
+    "diff_of_squares": { name: "乗法公式（和と差の積）", latex: "(a+b)(a-b) = a^2 - b^2", desc: "たすき掛けの公式。因数分解でも活用" },
+    "quadratic_formula": { name: "解の公式", latex: "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}", desc: "二次方程式 ax²+bx+c=0 の解。判別式 D=b²-4ac で解の数がわかる" },
+    "quadratic_standard": { name: "二次関数の標準形", latex: "y = a(x-p)^2 + q", desc: "頂点(p,q)、軸x=pのグラフ。平方完成でこの形に変形する" },
+    "discriminant": { name: "判別式", latex: "D = b^2 - 4ac", desc: "D>0:異なる2実数解、D=0:重解、D<0:実数解なし" },
+    "sine_rule": { name: "正弦定理", latex: "\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C} = 2R", desc: "外接円の半径Rと辺・角の関係" },
+    "cosine_rule": { name: "余弦定理", latex: "a^2 = b^2 + c^2 - 2bc\\cos A", desc: "3辺と1角の関係。三平方の定理の一般化" },
+    "trig_identity": { name: "三角比の相互関係", latex: "\\sin^2\\theta + \\cos^2\\theta = 1", desc: "三角比の最も基本的な関係式" },
+    "triangle_area_sin": { name: "三角形の面積", latex: "S = \\frac{1}{2}bc\\sin A", desc: "2辺とその間の角から面積を求める公式" },
+    "variance": { name: "分散の公式", latex: "s^2 = \\overline{x^2} - \\bar{x}^2", desc: "分散＝二乗の平均 − 平均の二乗" },
+    "correlation": { name: "相関係数", latex: "r = \\frac{s_{xy}}{s_x \\cdot s_y}", desc: "共分散をそれぞれの標準偏差で割ったもの。-1≤r≤1" },
+    "permutation": { name: "順列", latex: "{}_nP_r = \\frac{n!}{(n-r)!}", desc: "n個からr個を選んで並べる場合の数" },
+    "combination": { name: "組合せ", latex: "{}_nC_r = \\frac{n!}{r!(n-r)!}", desc: "n個からr個を選ぶ場合の数" },
+    "prob_addition": { name: "確率の加法定理", latex: "P(A \\cup B) = P(A) + P(B) - P(A \\cap B)", desc: "「または」の確率。重複を引く" },
+    "complementary_prob": { name: "余事象の確率", latex: "P(\\bar{A}) = 1 - P(A)", desc: "「少なくとも1つ」の問題で使う" },
+    "menelaus": { name: "メネラウスの定理", latex: "\\frac{BD}{DC} \\cdot \\frac{CE}{EA} \\cdot \\frac{AF}{FB} = 1", desc: "三角形の辺またはその延長上の3点が一直線上にある条件" },
+    "ceva": { name: "チェバの定理", latex: "\\frac{BD}{DC} \\cdot \\frac{CE}{EA} \\cdot \\frac{AF}{FB} = 1", desc: "三角形の頂点と対辺上の点を結ぶ線分が1点で交わる条件" },
+    "euclidean_algorithm": { name: "ユークリッドの互除法", latex: "\\gcd(a, b) = \\gcd(b, a \\bmod b)", desc: "割り算の余りを使って最大公約数を求めるアルゴリズム" },
+    "binomial_theorem": { name: "二項定理", latex: "(a+b)^n = \\sum_{r=0}^{n} {}_nC_r \\, a^{n-r} b^r", desc: "n乗の展開公式" },
+    "remainder_theorem": { name: "剰余の定理", latex: "P(a) = (P(x)\\text{を}(x-a)\\text{で割った余り})", desc: "多項式P(x)を(x-a)で割った余りはP(a)に等しい" },
+    "vieta_formulas": { name: "解と係数の関係", latex: "\\alpha + \\beta = -\\frac{b}{a}, \\quad \\alpha\\beta = \\frac{c}{a}", desc: "二次方程式の2解の和と積" },
+    "point_line_distance": { name: "点と直線の距離", latex: "d = \\frac{|ax_0 + by_0 + c|}{\\sqrt{a^2 + b^2}}", desc: "点(x₀,y₀)と直線 ax+by+c=0 の距離" },
+    "circle_equation": { name: "円の方程式", latex: "(x-a)^2 + (y-b)^2 = r^2", desc: "中心(a,b)、半径rの円の方程式" },
+    "sin_addition": { name: "加法定理（sin）", latex: "\\sin(\\alpha \\pm \\beta) = \\sin\\alpha\\cos\\beta \\pm \\cos\\alpha\\sin\\beta", desc: "三角関数の加法定理。倍角・半角公式の元" },
+    "cos_addition": { name: "加法定理（cos）", latex: "\\cos(\\alpha \\pm \\beta) = \\cos\\alpha\\cos\\beta \\mp \\sin\\alpha\\sin\\beta", desc: "三角関数の加法定理。±の符号が逆になる" },
+    "trig_synthesis": { name: "三角関数の合成", latex: "a\\sin\\theta + b\\cos\\theta = \\sqrt{a^2+b^2}\\sin(\\theta + \\alpha)", desc: "最大最小問題の必須テクニック" },
+    "double_angle_sin": { name: "倍角の公式（sin）", latex: "\\sin 2\\alpha = 2\\sin\\alpha\\cos\\alpha", desc: "加法定理でα=βとしたもの" },
+    "double_angle_cos": { name: "倍角の公式（cos）", latex: "\\cos 2\\alpha = \\cos^2\\alpha - \\sin^2\\alpha", desc: "=2cos²α-1=1-2sin²αの3つの形を使い分ける" },
+    "log_properties": { name: "対数の性質", latex: "\\log_a MN = \\log_a M + \\log_a N", desc: "対数の和→積の法則" },
+    "log_base_change": { name: "底の変換公式", latex: "\\log_a b = \\frac{\\log_c b}{\\log_c a}", desc: "底を揃えたいときに使う" },
+    "power_derivative": { name: "微分の基本公式", latex: "(x^n)' = nx^{n-1}", desc: "べき乗関数の微分。指数を前に出し、1下げる" },
+    "tangent_line": { name: "接線の方程式", latex: "y - f(a) = f'(a)(x - a)", desc: "曲線上の点における接線" },
+    "area_one_sixth": { name: "面積の1/6公式", latex: "S = \\frac{|a|}{6}(\\beta - \\alpha)^3", desc: "放物線とx軸で囲まれた面積" },
+    "arithmetic_seq": { name: "等差数列の一般項", latex: "a_n = a_1 + (n-1)d", desc: "初項a₁、公差dの等差数列の第n項" },
+    "arithmetic_sum": { name: "等差数列の和", latex: "S_n = \\frac{n(a_1 + a_n)}{2}", desc: "初項と末項の平均×項数" },
+    "geometric_seq": { name: "等比数列の一般項", latex: "a_n = a_1 \\cdot r^{n-1}", desc: "初項a₁、公比rの等比数列の第n項" },
+    "geometric_sum": { name: "等比数列の和", latex: "S_n = \\frac{a_1(1 - r^n)}{1 - r}", desc: "公比r≠1のときの等比数列の和" },
+    "z_score": { name: "正規分布の標準化", latex: "Z = \\frac{X - \\mu}{\\sigma}", desc: "正規分布を標準正規分布N(0,1)に変換" },
+    "confidence_interval": { name: "信頼区間（95%）", latex: "\\bar{x} - 1.96\\frac{\\sigma}{\\sqrt{n}} \\leq \\mu \\leq \\bar{x} + 1.96\\frac{\\sigma}{\\sqrt{n}}", desc: "母平均μの95%信頼区間" },
+    "infinite_geometric_series": { name: "無限等比級数の和", latex: "\\sum_{n=1}^{\\infty} ar^{n-1} = \\frac{a}{1-r} \\quad (|r|<1)", desc: "公比の絶対値が1未満のとき収束する" },
+    "e_definition": { name: "eの定義", latex: "e = \\lim_{n \\to \\infty}\\left(1 + \\frac{1}{n}\\right)^n", desc: "自然対数の底eの定義。約 2.718" },
+    "chain_rule": { name: "合成関数の微分（連鎖律則）", latex: "\\{f(g(x))\\}' = f'(g(x)) \\cdot g'(x)", desc: "外側の微分×内側の微分" },
+    "trig_derivatives": { name: "三角関数の微分", latex: "(\\sin x)' = \\cos x, \\quad (\\cos x)' = -\\sin x", desc: "sinの微分はcos、cosの微分は-sin" },
+    "exp_log_derivatives": { name: "指数・対数関数の微分", latex: "(e^x)' = e^x, \\quad (\\log x)' = \\frac{1}{x}", desc: "e^xは微分しても変わらない" },
+    "integration_by_parts": { name: "部分積分", latex: "\\int f(x)g'(x)dx = f(x)g(x) - \\int f'(x)g(x)dx", desc: "積の微分を逆に使うテクニック" },
+    "volume_rotation": { name: "回転体の体積", latex: "V = \\pi\\int_a^b \\{f(x)\\}^2 dx", desc: "y=f(x)をx軸のまわりに回転させた体積" },
+    "dot_product": { name: "内積", latex: "\\vec{a} \\cdot \\vec{b} = |\\vec{a}||\\vec{b}|\\cos\\theta", desc: "ベクトルの内積。垂直のとき0になる" },
+    "dot_product_components": { name: "内積（成分表示）", latex: "\\vec{a} \\cdot \\vec{b} = a_1b_1 + a_2b_2", desc: "成分での内積計算" },
+    "ellipse": { name: "楕円の方程式", latex: "\\frac{x^2}{a^2} + \\frac{y^2}{b^2} = 1", desc: "長軸a、短軸bの楕円" },
+    "hyperbola": { name: "双曲線の方程式", latex: "\\frac{x^2}{a^2} - \\frac{y^2}{b^2} = 1", desc: "漸近線 y=±(b/a)x" },
+    "polar_conversion": { name: "極座標と直交座標の変換", latex: "x = r\\cos\\theta, \\quad y = r\\sin\\theta", desc: "極座標と直交座標の相互変換" },
+    "complex_polar": { name: "複素数の極形式", latex: "z = r(\\cos\\theta + i\\sin\\theta)", desc: "絶対値r、偏角θで複素数を表す形式" },
+    "de_moivre": { name: "ド・モアブルの定理", latex: "(\\cos\\theta + i\\sin\\theta)^n = \\cos n\\theta + i\\sin n\\theta", desc: "複素数のn乗を極形式で簡単に計算できる" },
+};
+
+// unit_key list for GPT prompt
+const UNIT_KEY_LIST = Object.entries(UNIT_DB).map(([k,v]) => k + ' (' + v.name + ')').join(', ');
+
+// Legacy mapping: unit display name → unit_key (for backward compat)
+const UNIT_NAME_TO_KEY = {};
+Object.entries(UNIT_DB).forEach(([key, unit]) => { UNIT_NAME_TO_KEY[unit.name] = key; });
+
+const CATEGORY_LABELS = {
+    "math1a": "数学Ⅰ・A",
+    "math2b": "数学Ⅱ・B",
+    "math3c": "数学Ⅲ・C",
+};
+
+function getUnitByKey(key) { return UNIT_DB[key] || null; }
+function getFormulaByKey(key) { return FORMULA_DB[key] || null; }
+function getFormulasForUnit(unitKey) {
+    const unit = UNIT_DB[unitKey];
+    if (!unit) return [];
+    return unit.formulas.map(fk => FORMULA_DB[fk]).filter(Boolean);
+}
+function getCategoryForKey(unitKey) {
+    const unit = UNIT_DB[unitKey];
+    return unit ? unit.category : 'math1a';
+}
+function getCategoryLabel(unitKey) {
+    return CATEGORY_LABELS[getCategoryForKey(unitKey)] || '数学';
+}
+// For legacy tag name → category class
+function getTagClass(tagName) {
+    const key = UNIT_NAME_TO_KEY[tagName];
+    return key ? UNIT_DB[key].category : 'math1a';
+}
+
+// ═══ Sub-unit Database ═══
+const SUB_UNIT_DB = {
+    // 数学Ⅰ — 数と式
+    "exp_expand":     { name: "展開", unit_key: "expressions", order: 1, overview: "乗法公式を使った式の展開" },
+    "exp_factor":     { name: "因数分解", unit_key: "expressions", order: 2, overview: "共通因数のくくり出し、公式を使った因数分解" },
+    "exp_real_ineq":  { name: "実数と1次不等式", unit_key: "expressions", order: 3, overview: "実数の分類と1次不等式の解法" },
+    // 数学Ⅰ — 集合と命題
+    "sets_set":       { name: "集合", unit_key: "sets_logic", order: 1, overview: "集合の表し方、共通部分・和集合" },
+    "sets_prop":      { name: "命題と条件", unit_key: "sets_logic", order: 2, overview: "命題の真偽、必要条件・十分条件" },
+    // 数学Ⅰ — 二次関数
+    "qf_graph":       { name: "グラフと平方完成", unit_key: "quadratic_function", order: 1, overview: "平方完成による標準形への変形とグラフの描画" },
+    "qf_maxmin":      { name: "最大値・最小値", unit_key: "quadratic_function", order: 2, overview: "定義域付きの最大値・最小値問題" },
+    "qf_eq_ineq":     { name: "二次方程式・不等式", unit_key: "quadratic_function", order: 3, overview: "判別式を使った解の分析、二次不等式の解法" },
+    // 数学Ⅰ — 図形と計量
+    "tr_ratio":       { name: "三角比の定義", unit_key: "trigonometric_ratio", order: 1, overview: "sin, cos, tanの定義と相互関係" },
+    "tr_law":         { name: "正弦定理・余弦定理", unit_key: "trigonometric_ratio", order: 2, overview: "正弦定理と余弦定理の使い分け" },
+    "tr_area":        { name: "図形の計量", unit_key: "trigonometric_ratio", order: 3, overview: "三角比を使った面積・辺の長さの計算" },
+    // 数学Ⅰ — データの分析
+    "da_stats":       { name: "代表値と散布度", unit_key: "data_analysis", order: 1, overview: "平均値、分散、標準偏差の計算" },
+    "da_corr":        { name: "相関", unit_key: "data_analysis", order: 2, overview: "散布図と相関係数の読み取り" },
+    // 数学A — 場合の数と確率
+    "prob_count":     { name: "場合の数", unit_key: "probability", order: 1, overview: "樹形図、和の法則・積の法則" },
+    "prob_perm_comb": { name: "順列・組合せ", unit_key: "probability", order: 2, overview: "順列P、組合せCの計算と使い分け" },
+    "prob_basic":     { name: "確率の基本", unit_key: "probability", order: 3, overview: "確率の加法定理、余事象" },
+    "prob_cond":      { name: "条件付き確率", unit_key: "probability", order: 4, overview: "条件付き確率と確率の乗法定理" },
+    // 数学A — 図形の性質
+    "geo_triangle":   { name: "三角形の性質", unit_key: "geometry_properties", order: 1, overview: "五心、角の二等分線の性質" },
+    "geo_circle":     { name: "円の性質", unit_key: "geometry_properties", order: 2, overview: "円周角、接線、方べきの定理" },
+    // 数学A — 整数の性質
+    "int_divisor":    { name: "約数と倍数", unit_key: "integer_properties", order: 1, overview: "素因数分解、約数の個数と総和" },
+    "int_euclid":     { name: "互除法と不定方程式", unit_key: "integer_properties", order: 2, overview: "ユークリッドの互除法、1次不定方程式" },
+    // 数学Ⅱ — 式と証明
+    "prf_binomial":   { name: "二項定理", unit_key: "equations_proof", order: 1, overview: "二項定理と一般項の利用" },
+    "prf_proof":      { name: "等式・不等式の証明", unit_key: "equations_proof", order: 2, overview: "恒等式の証明、相加相乗平均" },
+    // 数学Ⅱ — 複素数と方程式
+    "ceq_complex":    { name: "複素数の計算", unit_key: "complex_equations", order: 1, overview: "虚数単位iと複素数の四則演算" },
+    "ceq_vieta":      { name: "解と係数の関係", unit_key: "complex_equations", order: 2, overview: "二次方程式の解の和と積" },
+    "ceq_higher":     { name: "高次方程式", unit_key: "complex_equations", order: 3, overview: "因数定理を使った高次方程式の解法" },
+    // 数学Ⅱ — 図形と方程式
+    "cg_line":        { name: "直線の方程式", unit_key: "coordinate_geometry", order: 1, overview: "2点を通る直線、点と直線の距離" },
+    "cg_circle":      { name: "円の方程式", unit_key: "coordinate_geometry", order: 2, overview: "円の方程式と直線との位置関係" },
+    "cg_region":      { name: "軌跡と領域", unit_key: "coordinate_geometry", order: 3, overview: "軌跡の方程式、不等式の表す領域" },
+    // 数学Ⅱ — 三角関数
+    "tf_graph":       { name: "三角関数のグラフ", unit_key: "trigonometric_function", order: 1, overview: "弧度法、周期、振幅" },
+    "tf_addition":    { name: "加法定理", unit_key: "trigonometric_function", order: 2, overview: "sin, cosの加法定理と倍角の公式" },
+    "tf_synthesis":   { name: "三角関数の合成", unit_key: "trigonometric_function", order: 3, overview: "a sinθ + b cosθの合成と最大最小" },
+    // 数学Ⅱ — 指数関数・対数関数
+    "el_exp":         { name: "指数関数", unit_key: "exponential_logarithm", order: 1, overview: "指数法則と指数関数のグラフ" },
+    "el_log":         { name: "対数関数", unit_key: "exponential_logarithm", order: 2, overview: "対数の性質、底の変換" },
+    // 数学Ⅱ — 微分法
+    "d2_deriv":       { name: "導関数と接線", unit_key: "differentiation_2", order: 1, overview: "べき乗の微分、接線の方程式" },
+    "d2_app":         { name: "関数の増減・極値", unit_key: "differentiation_2", order: 2, overview: "増減表と極大極小の判定" },
+    // 数学Ⅱ — 積分法
+    "i2_basic":       { name: "不定積分・定積分", unit_key: "integration_2", order: 1, overview: "多項式の積分計算" },
+    "i2_area":        { name: "面積", unit_key: "integration_2", order: 2, overview: "定積分による面積の計算" },
+    // 数学B — 数列
+    "seq_arith_geo":  { name: "等差・等比数列", unit_key: "sequences", order: 1, overview: "一般項と和の公式" },
+    "seq_recurrence": { name: "漸化式", unit_key: "sequences", order: 2, overview: "特性方程式による漸化式の解法" },
+    "seq_induction":  { name: "数学的帰納法", unit_key: "sequences", order: 3, overview: "数学的帰納法による証明" },
+    // 数学B — 統計的な推測
+    "si_dist":        { name: "確率分布", unit_key: "statistical_inference", order: 1, overview: "確率変数の期待値と分散" },
+    "si_normal":      { name: "正規分布と推定", unit_key: "statistical_inference", order: 2, overview: "正規分布の標準化、信頼区間" },
+    "si_test":        { name: "仮説検定", unit_key: "statistical_inference", order: 3, overview: "帰無仮説と有意水準" },
+    // 数学Ⅲ — 極限
+    "lim_seq":        { name: "数列の極限", unit_key: "limits", order: 1, overview: "収束・発散の判定、はさみうちの原理" },
+    "lim_func":       { name: "関数の極限", unit_key: "limits", order: 2, overview: "関数の極限と連続性" },
+    // 数学Ⅲ — 微分法
+    "d3_comp":        { name: "合成関数の微分", unit_key: "differentiation_3", order: 1, overview: "連鎖律則による微分" },
+    "d3_trig_exp":    { name: "三角・指数・対数の微分", unit_key: "differentiation_3", order: 2, overview: "sin, cos, eˣ, log xの微分" },
+    "d3_param":       { name: "媒介変数表示", unit_key: "differentiation_3", order: 3, overview: "媒介変数表示の微分" },
+    // 数学Ⅲ — 積分法
+    "i3_subst":       { name: "置換積分・部分積分", unit_key: "integration_3", order: 1, overview: "置換積分法と部分積分法" },
+    "i3_vol":         { name: "面積・体積", unit_key: "integration_3", order: 2, overview: "面積、回転体の体積、弧長" },
+    // 数学C — ベクトル
+    "vec_plane":      { name: "平面ベクトル", unit_key: "vectors", order: 1, overview: "ベクトルの加法・減法、実数倍" },
+    "vec_space":      { name: "空間ベクトル", unit_key: "vectors", order: 2, overview: "空間における位置ベクトルと内積" },
+    // 数学C — 平面上の曲線
+    "pc_conic":       { name: "二次曲線", unit_key: "plane_curves", order: 1, overview: "放物線・楕円・双曲線" },
+    "pc_param":       { name: "媒介変数表示", unit_key: "plane_curves", order: 2, overview: "曲線の媒介変数表示" },
+    "pc_polar":       { name: "極座標", unit_key: "plane_curves", order: 3, overview: "極座標と直交座標の変換" },
+    // 数学C — 複素数平面
+    "cp_polar":       { name: "極形式", unit_key: "complex_plane", order: 1, overview: "複素数の極形式と幾何学的意味" },
+    "cp_demoivre":    { name: "ド・モアブルの定理", unit_key: "complex_plane", order: 2, overview: "n乗根と回転" },
+};
+
+// Helper: get sub-units for a unit_key
+function getSubUnitsForUnit(unitKey) {
+    return Object.entries(SUB_UNIT_DB)
+        .filter(([_, su]) => su.unit_key === unitKey)
+        .sort((a, b) => a[1].order - b[1].order)
+        .map(([key, su]) => ({ key, ...su }));
+}
+
+// ═══ Problem Database (サンプル問題 — Notionから追加可能) ═══
+const PROBLEM_DB = {
+    // 数と式 — 展開
+    "exp_expand_01": {
+        sub_unit_key: "exp_expand", order: 1, title: "乗法公式の基本",
+        problem_text: "次の式を展開せよ。\n$(x+3)^2$",
+        difficulty: "基本", hint: "$(a+b)^2 = a^2 + 2ab + b^2$ の公式を使おう"
+    },
+    "exp_expand_02": {
+        sub_unit_key: "exp_expand", order: 2, title: "和と差の積",
+        problem_text: "次の式を展開せよ。\n$(2x+5)(2x-5)$",
+        difficulty: "基本", hint: "$(a+b)(a-b) = a^2 - b^2$ を使おう"
+    },
+    // 数と式 — 因数分解
+    "exp_factor_01": {
+        sub_unit_key: "exp_factor", order: 1, title: "共通因数と公式",
+        problem_text: "次の式を因数分解せよ。\n$x^2 + 6x + 9$",
+        difficulty: "基本", hint: "和の二乗の形 $a^2 + 2ab + b^2$ になっていないか確認しよう"
+    },
+    "exp_factor_02": {
+        sub_unit_key: "exp_factor", order: 2, title: "たすき掛け",
+        problem_text: "次の式を因数分解せよ。\n$2x^2 + 5x + 3$",
+        difficulty: "標準", hint: "たすき掛けで分解できる組み合わせを探そう"
+    },
+    // 二次関数 — グラフと平方完成
+    "qf_graph_01": {
+        sub_unit_key: "qf_graph", order: 1, title: "平方完成",
+        problem_text: "次の二次関数のグラフの頂点の座標を求めよ。\n$y = x^2 - 4x + 7$",
+        difficulty: "基本", hint: "平方完成して $y = (x-p)^2 + q$ の形にしよう"
+    },
+    // 二次関数 — 最大値・最小値
+    "qf_maxmin_01": {
+        sub_unit_key: "qf_maxmin", order: 1, title: "定義域なしの最小値",
+        problem_text: "二次関数 $y = x^2 - 6x + 11$ の最小値を求めよ。",
+        difficulty: "基本", hint: "平方完成して頂点を求めよう"
+    },
+    // 図形と計量 — 正弦定理・余弦定理
+    "tr_law_01": {
+        sub_unit_key: "tr_law", order: 1, title: "余弦定理",
+        problem_text: "三角形ABCにおいて、$a=5$, $b=7$, $C=60°$ のとき、$c$ の値を求めよ。",
+        difficulty: "標準", hint: "$c^2 = a^2 + b^2 - 2ab\\cos C$ を使おう"
+    },
+    // 確率 — 順列・組合せ
+    "prob_perm_comb_01": {
+        sub_unit_key: "prob_perm_comb", order: 1, title: "組合せの基本",
+        problem_text: "10人の中から3人の委員を選ぶ方法は何通りあるか。",
+        difficulty: "基本", hint: "順番を考えないので組合せ ${}_nC_r$ を使おう"
+    },
+};
+
+// Helper: get problems for a sub_unit_key
+function getProblemsForSubUnit(subUnitKey) {
+    return Object.entries(PROBLEM_DB)
+        .filter(([_, p]) => p.sub_unit_key === subUnitKey)
+        .sort((a, b) => a[1].order - b[1].order)
+        .map(([key, p]) => ({ key, ...p }));
+}
+
+// ═══ System Prompt ═══
+const SYSTEM_PROMPT = `あなたは高校1〜2年生向けの、やさしい数学の先生AIです。
+生徒が手書きで解いた数学の答案の画像を受け取り、採点します。
+
+【数式ルール】
+- 説明文中の数式は必ず $...$ で囲む（例: $x = 3$）
+- score_explanation の中でも同様
+
+【採点基準】10点満点
+- 10点: 完全正解
+- 7〜9点: 方針は合っているが計算ミスや記述不足
+- 4〜6点: 一部正しいが重要な誤りがある
+- 1〜3点: 方針から間違っている
+- 0点: 全く解けていない
+
+【unit_keys一覧】
+${UNIT_KEY_LIST}
+
+以下のJSON形式のみで回答してください。公式は返さなくてOK（アプリ側で自動取得します）。
+
+{
+  "score": 8,
+  "score_message": "点数に応じた短い一言（10点:すばらしい！完璧！/ 7-9点:おしい！あと少し！/ 4-6点:いい線いってるよ！/ 0-3点:基礎から確認しよう！）",
+  "unit_keys": ["この問題が属する単元keyのリスト。上のunit_keys一覧から選択"],
+  "score_explanation": "7点以下の場合のみ記載。どこが間違っていてどうすれば正解できたか。数式は $...$ で囲む。8点以上の場合は null",
+  "hint": "7点以下の場合、次に気をつけるポイント。8点以上なら null"
+}`;
+
+// ═══ API Call ═══
+async function analyze() {
+    if (!selectedFile || !base64Image) return;
+    if (!apiKey) { renderError('API設定からAPIキーを入力してください。'); return; }
+
+    const btn = document.getElementById('analyzeBtn');
+    btn.classList.add('loading'); btn.disabled = true;
+    document.getElementById('resultsSection').innerHTML = '';
+    document.getElementById('resultsSection').style.display = 'none';
+
+    const startTime = performance.now();
+
+    try {
+        const response = await fetch('https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+            body: JSON.stringify({
+                model: 'gpt-5-nano',
+                input: [
+                    { role: 'developer', content: getSystemPrompt() },
+                    { role: 'user', content: [
+                        { type: 'input_image', image_url: base64Image },
+                        { type: 'input_text', text: 'この答案を採点してください。' }
+                    ]}
+                ],
+            }),
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => null);
+            throw new Error(errData?.error?.message || 'HTTP ' + response.status);
+        }
+
+        const data = await response.json();
+        const processingTime = Math.round(performance.now() - startTime);
+
+        let rawText = '';
+        if (data.output) {
+            for (const item of data.output) {
+                if (item.type === 'message' && item.content) {
+                    for (const c of item.content) {
+                        if (c.type === 'output_text') rawText += c.text;
+                    }
+                }
+            }
+        }
+        if (!rawText) throw new Error('APIからの応答が空です。');
+
+        if (rawText.includes('```json')) rawText = rawText.split('```json')[1].split('```')[0].trim();
+        else if (rawText.includes('```')) rawText = rawText.split('```')[1].split('```')[0].trim();
+
+        const result = JSON.parse(rawText);
+        const tokens = data.usage ? { input: data.usage.input_tokens, output: data.usage.output_tokens, total: data.usage.total_tokens } : null;
+
+        renderResults(result, processingTime, tokens);
+    } catch (err) {
+        renderError(err.message);
+    } finally {
+        btn.classList.remove('loading'); btn.disabled = false;
+    }
+}
+
+// ═══ Render Results ═══
+function renderResults(data, processingTime, tokens) {
+    const section = document.getElementById('resultsSection');
+    const score = data.score ?? 0;
+    let html = '';
+
+    // Resolve unit_keys (support both unit_keys and legacy unit_tags)
+    const unitKeys = (data.unit_keys || []).map(k => {
+        if (UNIT_DB[k]) return k;
+        // Legacy: try to match by display name
+        return UNIT_NAME_TO_KEY[k] || null;
+    }).filter(Boolean);
+
+    // Collect all formulas from matched units
+    const allFormulas = [];
+    const seenFormulas = new Set();
+    unitKeys.forEach(uk => {
+        getFormulasForUnit(uk).forEach(f => {
+            const fKey = UNIT_DB[uk].formulas.find(fk => FORMULA_DB[fk] === f);
+            if (fKey && !seenFormulas.has(fKey)) {
+                seenFormulas.add(fKey);
+                allFormulas.push(f);
+            }
+        });
+    });
+
+    // Score circle
+    let level = 'low';
+    if (score >= 10) level = 'perfect';
+    else if (score >= 8) level = 'good';
+    else if (score >= 5) level = 'mid';
+
+    html += '<div class="score-display">';
+    html += '<div class="score-circle ' + level + '">';
+    html += '<span class="score-number">' + score + '</span>';
+    html += '<span class="score-max">/ 10</span>';
+    html += '</div>';
+    html += '<div class="score-message ' + level + '">' + escHtml(data.score_message || '') + '</div>';
+    html += '</div>';
+
+    // Explanation (only for score <= 7)
+    if (score <= 7 && data.score_explanation) {
+        html += '<div class="result-card">';
+        html += '<div class="result-title">📝 解説</div>';
+        html += '<div class="mixed-text">' + renderMixedText(data.score_explanation) + '</div>';
+
+        // Formulas from DB
+        if (allFormulas.length > 0) {
+            html += '<div class="formula-box">';
+            html += '<div class="formula-box-title">📐 関連する公式・定理</div>';
+            allFormulas.forEach(f => {
+                html += '<div class="formula-item">';
+                html += '<span class="formula-name">' + escHtml(f.name) + '</span>';
+                if (f.latex) html += '<div class="formula-expr">' + renderMathBlock(f.latex) + '</div>';
+                if (f.desc) html += '<div style="font-size:12px;color:var(--text-secondary);margin-top:4px">' + escHtml(f.desc) + '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+        html += '</div>';
+
+        // Hint
+        if (data.hint) {
+            html += '<div class="hint-card">';
+            html += '<div class="result-title" style="color:var(--warning)">💡 次に気をつけるポイント</div>';
+            html += '<div class="mixed-text">' + renderMixedText(data.hint) + '</div>';
+            html += '</div>';
+        }
+    }
+
+    // Formulas for high score too
+    if (score >= 8 && allFormulas.length > 0) {
+        html += '<div class="result-card">';
+        html += '<div class="formula-box" style="margin-top:0">';
+        html += '<div class="formula-box-title">📐 この問題で使った公式</div>';
+        allFormulas.forEach(f => {
+            html += '<div class="formula-item">';
+            html += '<span class="formula-name">' + escHtml(f.name) + '</span>';
+            if (f.latex) html += '<div class="formula-expr">' + renderMathBlock(f.latex) + '</div>';
+            html += '</div>';
+        });
+        html += '</div></div>';
+    }
+
+    // Unit tags (always shown) — now using unit_keys
+    if (unitKeys.length > 0) {
+        html += '<div class="unit-section">';
+        html += '<div class="result-title">📚 関連する単元</div>';
+        html += '<div class="unit-tags">';
+        unitKeys.forEach(uk => {
+            const unit = UNIT_DB[uk];
+            if (!unit) return;
+            const cls = unit.category;
+            const cat = CATEGORY_LABELS[unit.category] || '数学';
+            html += '<button class="unit-tag ' + cls + '" onclick="navigateTo(\'unit\', {unitKey:\'' + uk + '\'})">';
+            html += '<span style="font-size:11px;opacity:0.7">' + escHtml(cat) + '</span> ';
+            html += escHtml(unit.name);
+            html += ' <span class="unit-tag-arrow">→</span>';
+            html += '</button>';
+        });
+        html += '</div></div>';
+    }
+
+    // Meta
+    html += '<div class="meta-bar">';
+    html += '<span class="meta-item"><span class="meta-label">処理時間:</span> ' + processingTime + 'ms</span>';
+    if (tokens) html += '<span class="meta-item"><span class="meta-label">トークン:</span> ' + tokens.total + '</span>';
+    html += '<span class="meta-item"><span class="meta-label">モデル:</span> GPT-5 Nano</span>';
+    html += '</div>';
+
+    section.innerHTML = html;
+    section.style.display = 'block';
+    section.classList.add('visible');
+}
+
+function renderError(message) {
+    const section = document.getElementById('resultsSection');
+    section.innerHTML = '<div class="error-card"><div class="result-title">❌ エラー</div>' +
+        '<p style="margin-top:8px;font-size:14px;color:var(--error)">' + escHtml(message) + '</p></div>';
+    section.style.display = 'block';
+    section.classList.add('visible');
+}
+
+// ═══ Learning Panel (DB-based, instant, no API call) ═══
+function openLearning(unitKey) {
+    const overlay = document.getElementById('learningOverlay');
+    const title = document.getElementById('learningTitle');
+    const body = document.getElementById('learningBody');
+
+    const unit = UNIT_DB[unitKey];
+    if (!unit) {
+        body.innerHTML = '<div class="error-card"><p style="color:var(--error)">単元が見つかりません</p></div>';
+        overlay.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+        return;
+    }
+
+    title.textContent = unit.name + ' — 単元学習';
+    const formulas = getFormulasForUnit(unitKey);
+    const cat = CATEGORY_LABELS[unit.category] || '数学';
+
+    let html = '';
+
+    // Subject badge + Overview
+    html += '<div class="result-card" style="border-color:var(--border-accent)">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">';
+    html += '<span class="unit-tag ' + unit.category + '" style="cursor:default;font-size:12px;padding:4px 10px">' + escHtml(cat) + '</span>';
+    html += '</div>';
+    html += '<div class="result-title">📖 概要</div>';
+    html += '<div class="mixed-text">' + escHtml(unit.summary) + '</div>';
+    html += '</div>';
+
+    // Key Formulas from DB
+    if (formulas.length > 0) {
+        html += '<div class="result-card">';
+        html += '<div class="result-title">📐 重要公式</div>';
+        formulas.forEach(f => {
+            html += '<div class="formula-box" style="margin-bottom:12px">';
+            html += '<div class="formula-box-title">' + escHtml(f.name) + '</div>';
+            if (f.latex) html += '<div class="math-block" style="margin:8px 0">' + renderMathBlock(f.latex) + '</div>';
+            if (f.desc) html += '<div class="mixed-text" style="font-size:13px;color:var(--text-secondary)">' + escHtml(f.desc) + '</div>';
+            html += '</div>';
+        });
+        html += '</div>';
+    }
+
+    // Learning Points / Tips
+    if (unit.tips) {
+        const tips = unit.tips.split('\\n').filter(t => t.trim());
+        if (tips.length > 0) {
+            html += '<div class="hint-card">';
+            html += '<div class="result-title" style="color:var(--warning)">💡 学習ポイント</div>';
+            html += '<ul style="margin-top:8px;padding-left:20px;line-height:1.9;font-size:14px">';
+            tips.forEach(t => { html += '<li>' + renderMixedText(t) + '</li>'; });
+            html += '</ul></div>';
+        }
+    }
+
+    body.innerHTML = html;
+    overlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeLearning(event) {
+    if (event && event.target !== document.getElementById('learningOverlay')) return;
+    document.getElementById('learningOverlay').classList.remove('visible');
+    document.body.style.overflow = '';
+}
+
+// ═══ Navigation System ═══
+let currentScreen = 'home';
+let navHistory = [];
+let currentProblemContext = null; // { problemKey, subUnitKey, unitKey } or null (free mode)
+
+function navigateTo(screenId, data) {
+    if (currentScreen !== screenId) navHistory.push(currentScreen);
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById('screen-' + screenId);
+    if (target) target.classList.add('active');
+    currentScreen = screenId;
+
+    // Reset upload state on screen change
+    if (screenId !== 'problem') resetUploadState();
+
+    // Screen-specific init
+    if (screenId === 'home') renderHomeScreen();
+    else if (screenId === 'unit' && data) renderUnitDetail(data.unitKey);
+    else if (screenId === 'problem' && data) renderProblemScreen(data);
+    else if (screenId === 'free') {
+        currentProblemContext = null;
+        navigateTo('problem', { mode: 'free' });
+    }
+
+    window.scrollTo(0, 0);
+}
+
+function navigateBack() {
+    const prev = navHistory.pop() || 'home';
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById('screen-' + prev);
+    if (target) target.classList.add('active');
+    currentScreen = prev;
+    if (prev === 'home') renderHomeScreen();
+    // Re-render unit detail if going back to it (unitKey stored on element)
+    if (prev === 'unit') {
+        const title = document.getElementById('unitDetailTitle').textContent;
+        // Find unit by name
+        const entry = Object.entries(UNIT_DB).find(([_, u]) => u.name === title);
+        if (entry) renderUnitDetail(entry[0]);
+    }
+    window.scrollTo(0, 0);
+}
+
+function resetUploadState() {
+    selectedFile = null; base64Image = null;
+    const pc = document.getElementById('previewContainer');
+    if (pc) pc.classList.remove('visible');
+    const up = document.getElementById('uploadPrompt');
+    if (up) up.style.display = '';
+    const ua = document.getElementById('uploadArea');
+    if (ua) ua.classList.remove('has-image');
+    const btn = document.getElementById('analyzeBtn');
+    if (btn) { btn.disabled = true; }
+    const bt = document.getElementById('btnText');
+    if (bt) bt.textContent = '答案をアップロードしてください';
+    const rs = document.getElementById('resultsSection');
+    if (rs) { rs.innerHTML = ''; rs.style.display = 'none'; rs.classList.remove('visible'); }
+}
+
+// ═══ Home Screen: Unit Grid ═══
+let activeSubjectFilter = 'all';
+
+function renderHomeScreen() {
+    // Subject tabs
+    const tabsEl = document.getElementById('subjectTabs');
+    const subjects = [
+        { key: 'all', label: 'すべて' },
+        { key: 'math1a', label: '数Ⅰ・A' },
+        { key: 'math2b', label: '数Ⅱ・B' },
+        { key: 'math3c', label: '数Ⅲ・C' },
+    ];
+    tabsEl.innerHTML = subjects.map(s =>
+        '<button class="subject-tab' + (activeSubjectFilter === s.key ? ' active' : '') +
+        '" onclick="filterSubject(\'' + s.key + '\')">' + s.label + '</button>'
+    ).join('');
+
+    // Unit grid
+    const gridEl = document.getElementById('unitGrid');
+    const units = Object.entries(UNIT_DB)
+        .filter(([_, u]) => activeSubjectFilter === 'all' || u.category === activeSubjectFilter)
+        .sort((a, b) => a[1].order - b[1].order);
+
+    gridEl.innerHTML = units.map(([key, u]) => {
+        const subUnits = getSubUnitsForUnit(key);
+        const problemCount = subUnits.reduce((sum, su) => sum + getProblemsForSubUnit(su.key).length, 0);
+        const cat = CATEGORY_LABELS[u.category] || '';
+        return '<div class="unit-card ' + u.category + '" onclick="navigateTo(\'unit\', {unitKey:\'' + key + '\'})">' +
+            '<div class="unit-card-subject ' + u.category + '">' + escHtml(u.subject) + '</div>' +
+            '<div class="unit-card-name">' + escHtml(u.name) + '</div>' +
+            '<div class="unit-card-meta">' + subUnits.length + '小単元' +
+            (problemCount > 0 ? ' · ' + problemCount + '問' : '') + '</div>' +
+            '</div>';
+    }).join('');
+}
+
+function filterSubject(key) {
+    activeSubjectFilter = key;
+    renderHomeScreen();
+}
+
+// ═══ Unit Detail Screen ═══
+function renderUnitDetail(unitKey) {
+    const unit = UNIT_DB[unitKey];
+    if (!unit) return;
+
+    document.getElementById('unitDetailTitle').textContent = unit.name;
+    document.getElementById('unitDetailSubject').textContent = unit.subject;
+
+    // Overview
+    const overviewEl = document.getElementById('unitOverview');
+    overviewEl.innerHTML = '<p>' + escHtml(unit.summary) + '</p>';
+
+    // Sub-units
+    const subUnits = getSubUnitsForUnit(unitKey);
+    const listEl = document.getElementById('subunitList');
+
+    if (subUnits.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">小単元はまだ登録されていません</div>';
+        return;
+    }
+
+    let html = '';
+    subUnits.forEach(su => {
+        const problems = getProblemsForSubUnit(su.key);
+        const problemLabel = problems.length > 0 ? problems.length + '問' : '準備中';
+        html += '<div class="subunit-item" onclick="openSubUnit(\'' + su.key + '\', \'' + unitKey + '\')">'; 
+        html += '<div><div class="subunit-name">' + escHtml(su.name) + '</div>';
+        html += '<div class="subunit-meta">' + escHtml(su.overview) + ' · ' + problemLabel + '</div></div>';
+        html += '<span class="subunit-arrow">›</span>';
+        html += '</div>';
+    });
+    listEl.innerHTML = html;
+}
+
+// ═══ Open Sub-unit → Problem List or First Problem ═══
+function openSubUnit(subUnitKey, unitKey) {
+    const problems = getProblemsForSubUnit(subUnitKey);
+    if (problems.length === 0) {
+        // No problems yet — show coming-soon in problem screen
+        navigateTo('problem', { mode: 'empty', subUnitKey, unitKey });
+        return;
+    }
+    // Open first problem
+    navigateTo('problem', {
+        mode: 'problem',
+        subUnitKey,
+        unitKey,
+        problemKey: problems[0].key,
+        problemIndex: 0,
+        totalProblems: problems.length,
+    });
+}
+
+// ═══ Problem Screen ═══
+function renderProblemScreen(data) {
+    const titleEl = document.getElementById('problemScreenTitle');
+    const subEl = document.getElementById('problemScreenSub');
+    const displayEl = document.getElementById('problemDisplay');
+    const diffEl = document.getElementById('problemDifficulty');
+    const textEl = document.getElementById('problemText');
+    const hintEl = document.getElementById('problemHint');
+
+    resetUploadState();
+
+    if (data.mode === 'free') {
+        // Free grading mode
+        currentProblemContext = null;
+        titleEl.textContent = 'フリー採点';
+        subEl.textContent = '好きな問題の答案をアップロード';
+        displayEl.style.display = 'none';
+        document.getElementById('problemBackBtn').onclick = function() { navigateTo('home'); };
+        return;
+    }
+
+    if (data.mode === 'empty') {
+        const su = SUB_UNIT_DB[data.subUnitKey];
+        titleEl.textContent = su ? su.name : '小単元';
+        subEl.textContent = '問題を準備中です';
+        displayEl.style.display = 'none';
+        document.getElementById('problemBackBtn').onclick = function() {
+            navigateTo('unit', { unitKey: data.unitKey });
+        };
+        // Show empty state in results area
+        const rs = document.getElementById('resultsSection');
+        rs.innerHTML = '<div class="empty-state" style="padding:60px 20px">' +
+            '<div style="font-size:48px;margin-bottom:16px">📝</div>' +
+            '<div style="font-size:16px;font-weight:600;margin-bottom:8px">問題を準備中です</div>' +
+            '<div style="font-size:13px">この小単元の演習問題は近日追加予定です。<br>フリー採点モードでは、任意の問題の答案を採点できます。</div>' +
+            '</div>';
+        rs.style.display = 'block';
+        rs.classList.add('visible');
+        return;
+    }
+
+    // Problem mode
+    const problem = PROBLEM_DB[data.problemKey];
+    const su = SUB_UNIT_DB[data.subUnitKey];
+    const unit = UNIT_DB[data.unitKey];
+    if (!problem || !su) return;
+
+    currentProblemContext = {
+        problemKey: data.problemKey,
+        subUnitKey: data.subUnitKey,
+        unitKey: data.unitKey,
+        problemText: problem.problem_text,
+        problemIndex: data.problemIndex,
+        totalProblems: data.totalProblems,
+    };
+
+    titleEl.textContent = su.name;
+    subEl.textContent = (unit ? unit.name + ' · ' : '') + '問題 ' + (data.problemIndex + 1) + ' / ' + data.totalProblems;
+
+    // Problem display
+    displayEl.style.display = 'block';
+    const diffClass = problem.difficulty === '基本' ? 'basic' : problem.difficulty === '標準' ? 'standard' : 'advanced';
+    diffEl.innerHTML = '<span class="diff-badge ' + diffClass + '">' + escHtml(problem.difficulty) + '</span> ' + escHtml(problem.title);
+    textEl.innerHTML = renderMixedText(problem.problem_text);
+
+    // Hint
+    if (problem.hint) {
+        hintEl.style.display = 'block';
+        hintEl.innerHTML = '💡 ヒントを見る';
+        hintEl.classList.remove('revealed');
+        hintEl.dataset.hint = problem.hint;
+    } else {
+        hintEl.style.display = 'none';
+    }
+
+    // Back button
+    document.getElementById('problemBackBtn').onclick = function() {
+        navigateTo('unit', { unitKey: data.unitKey });
+    };
+
+    // Add problem navigation (prev/next) below results
+    addProblemNav(data);
+}
+
+function revealHint(el) {
+    if (el.classList.contains('revealed')) return;
+    el.classList.add('revealed');
+    el.innerHTML = '💡 ' + renderMixedText(el.dataset.hint);
+}
+
+function addProblemNav(data) {
+    // Remove existing nav if any
+    const existing = document.getElementById('problemNav');
+    if (existing) existing.remove();
+
+    const problems = getProblemsForSubUnit(data.subUnitKey);
+    if (problems.length <= 1) return;
+
+    const nav = document.createElement('div');
+    nav.id = 'problemNav';
+    nav.style.cssText = 'display:flex;justify-content:space-between;padding:16px 20px;gap:12px;';
+
+    const prevBtn = data.problemIndex > 0
+        ? '<button class="nav-back" onclick="gotoProblem(' + (data.problemIndex - 1) + ',\'' + data.subUnitKey + '\',\'' + data.unitKey + '\')">← 前の問題</button>'
+        : '<span></span>';
+    const nextBtn = data.problemIndex < problems.length - 1
+        ? '<button class="nav-back" onclick="gotoProblem(' + (data.problemIndex + 1) + ',\'' + data.subUnitKey + '\',\'' + data.unitKey + '\')" style="border-color:var(--accent);color:var(--accent)">次の問題 →</button>'
+        : '<span></span>';
+
+    nav.innerHTML = prevBtn + '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted)">' +
+        problems.map((_, i) => '<span style="width:8px;height:8px;border-radius:50%;background:' +
+        (i === data.problemIndex ? 'var(--accent)' : 'var(--border)') + '"></span>').join('') +
+        '</div>' + nextBtn;
+
+    // Insert after problem display
+    const display = document.getElementById('problemDisplay');
+    display.parentNode.insertBefore(nav, display.nextSibling);
+}
+
+function gotoProblem(index, subUnitKey, unitKey) {
+    const problems = getProblemsForSubUnit(subUnitKey);
+    if (index < 0 || index >= problems.length) return;
+    // Don't push to navHistory for prev/next
+    renderProblemScreen({
+        mode: 'problem',
+        subUnitKey,
+        unitKey,
+        problemKey: problems[index].key,
+        problemIndex: index,
+        totalProblems: problems.length,
+    });
+}
+
+// ═══ Modified analyze() with problem context ═══
+function getSystemPrompt() {
+    if (currentProblemContext && currentProblemContext.problemText) {
+        return SYSTEM_PROMPT + `\n\n【出題された問題】\n${currentProblemContext.problemText}\n\nこの問題に対する手書きの答案を採点してください。unit_keysには "${currentProblemContext.unitKey}" を含めてください。`;
+    }
+    return SYSTEM_PROMPT;
+}
+
+// ═══ Init: Render Home Screen ═══
+renderHomeScreen();
+</script>
+</body>
+</html>

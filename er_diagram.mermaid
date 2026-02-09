@@ -1,0 +1,223 @@
+erDiagram
+    %% ===== 1. コア問題データ =====
+    skills {
+        text id PK "例: poly_add_sub"
+        subject subject "数I/A/II/B/III/C"
+        text unit_name "例: 整式"
+        text subunit_name "例: 整式の加法・減法"
+        text display_name
+        int sort_order
+    }
+
+    skill_dependencies {
+        serial id PK
+        text prerequisite_id FK
+        text dependent_id FK
+        text dependency_type "required/recommended"
+    }
+
+    patterns {
+        text id PK "例: poly_add_sub__like_terms"
+        text skill_id FK
+        text display_name "例: 同類項の整理"
+        int sort_order
+    }
+
+    examples {
+        text id PK
+        text pattern_id FK "UNIQUE 1対1"
+        text question_text
+        text question_expr "LaTeX"
+        text answer_text
+        text learning_point
+    }
+
+    example_steps {
+        serial id PK
+        text example_id FK
+        int step_number
+        text label
+        text expr "LaTeX"
+    }
+
+    exercises {
+        text id PK
+        text pattern_id FK
+        input_template input_template "7種類"
+        int difficulty "1-5"
+        text question_text
+        text question_expr "LaTeX"
+        text explanation
+        numeric grading_cost "円"
+    }
+
+    exercise_choices {
+        serial id PK
+        text exercise_id FK
+        text choice_label "A/B/C/D"
+        text choice_expr
+        boolean is_correct
+        text distractor_note "誤答の設計意図"
+    }
+
+    exercise_answers {
+        serial id PK
+        text exercise_id FK
+        text answer_expr
+        text normalized_form "比較用"
+        boolean is_primary
+    }
+
+    exercise_rubrics {
+        serial id PK
+        text exercise_id FK
+        text criterion
+        int max_points
+        text description "LLMプロンプト用"
+    }
+
+    %% ===== 2. B2B管理 =====
+    organizations {
+        uuid id PK
+        text name
+        text slug "URL用"
+        text plan "trial/basic/premium"
+        int max_students
+    }
+
+    schools {
+        uuid id PK
+        uuid organization_id FK
+        text name
+        text school_code
+        text prefecture
+    }
+
+    users {
+        uuid id PK
+        uuid organization_id FK
+        uuid school_id FK
+        user_role role "admin/teacher/student"
+        text email
+        text display_name
+    }
+
+    classes {
+        uuid id PK
+        uuid school_id FK
+        text name "例: 1年A組"
+        int academic_year
+        int grade "1-3"
+    }
+
+    class_memberships {
+        serial id PK
+        uuid class_id FK
+        uuid user_id FK
+        text role "student/teacher"
+    }
+
+    %% ===== 3. 学習履歴 =====
+    answer_logs {
+        bigserial id PK
+        uuid user_id FK
+        text exercise_id FK
+        uuid assignment_id FK "nullable"
+        learning_mode mode
+        text answer_raw
+        boolean is_correct
+        numeric score
+        text grading_method "local/llm"
+        numeric grading_cost
+        jsonb llm_feedback
+        int time_spent_sec
+    }
+
+    skill_mastery {
+        serial id PK
+        uuid user_id FK
+        text skill_id FK
+        mastery_level mastery
+        int total_attempts
+        int correct_count
+        numeric accuracy
+        int streak
+    }
+
+    pattern_mastery {
+        serial id PK
+        uuid user_id FK
+        text pattern_id FK
+        int total_attempts
+        int correct_count
+        numeric accuracy
+    }
+
+    weakness_reports {
+        uuid id PK
+        uuid user_id FK
+        jsonb report_json
+        timestamptz generated_at
+    }
+
+    %% ===== 4. 宿題配信 =====
+    assignments {
+        uuid id PK
+        uuid class_id FK
+        uuid created_by FK "教師"
+        text title
+        assignment_status status
+        timestamptz due_at
+        boolean allow_retry
+    }
+
+    assignment_exercises {
+        serial id PK
+        uuid assignment_id FK
+        text exercise_id FK
+        int sort_order
+        numeric points "配点"
+    }
+
+    assignment_submissions {
+        uuid id PK
+        uuid assignment_id FK
+        uuid student_id FK
+        submission_status status
+        numeric total_score
+        text teacher_comment
+    }
+
+    %% ===== リレーション =====
+    skills ||--o{ patterns : "has"
+    skills ||--o{ skill_dependencies : "prerequisite"
+    skills ||--o{ skill_dependencies : "dependent"
+    patterns ||--|| examples : "1:1"
+    patterns ||--o{ exercises : "has 2-4"
+    examples ||--o{ example_steps : "has steps"
+    exercises ||--o{ exercise_choices : "SELECT系"
+    exercises ||--o{ exercise_answers : "TEXT系"
+    exercises ||--o{ exercise_rubrics : "IMAGE系"
+
+    organizations ||--o{ schools : "has"
+    organizations ||--o{ users : "has"
+    schools ||--o{ users : "belongs"
+    schools ||--o{ classes : "has"
+    classes ||--o{ class_memberships : "has"
+    users ||--o{ class_memberships : "joins"
+
+    users ||--o{ answer_logs : "answers"
+    exercises ||--o{ answer_logs : "answered"
+    users ||--o{ skill_mastery : "tracks"
+    skills ||--o{ skill_mastery : "tracked"
+    users ||--o{ pattern_mastery : "tracks"
+    patterns ||--o{ pattern_mastery : "tracked"
+    users ||--o{ weakness_reports : "has"
+
+    classes ||--o{ assignments : "receives"
+    users ||--o{ assignments : "creates"
+    assignments ||--o{ assignment_exercises : "contains"
+    exercises ||--o{ assignment_exercises : "in"
+    assignments ||--o{ assignment_submissions : "has"
+    users ||--o{ assignment_submissions : "submits"
+    assignments ||--o{ answer_logs : "logs"
