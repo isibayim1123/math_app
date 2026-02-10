@@ -55,6 +55,9 @@ htmlcov/
 *.ipr
 out/
 
+# ===== ビルド生成ファイル =====
+public/prototype/config.js
+
 # ===== その他 =====
 *.log
 *.tmp
