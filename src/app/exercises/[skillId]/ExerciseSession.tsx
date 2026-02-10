@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Skill, ExerciseWithDetails } from "@/types/database";
 import { MathText } from "@/components/ui/MathText";
 import { ExerciseRenderer } from "@/components/exercise/ExerciseRenderer";
+import { saveAnswerLog, updateSkillMastery } from "@/lib/learning-history";
 
 const TEMPLATE_ICON: Record<string, string> = {
   SELECT_BASIC: "🔘",
@@ -44,6 +45,12 @@ export function ExerciseSession({
     next[current] = correct;
     setResults(next);
     setAnswered(true);
+
+    // 回答ログをSupabaseに保存
+    saveAnswerLog({
+      exerciseId: ex.id,
+      isCorrect: correct,
+    });
   }
 
   function handleNext() {
@@ -55,6 +62,16 @@ export function ExerciseSession({
     setAnswered(false);
     setShowExplanation(false);
   }
+
+  // 演習完了時にスキル習熟度を更新
+  useEffect(() => {
+    if (!finished) return;
+    const correctCnt = results.filter((r) => r === true).length;
+    const answeredCnt = results.filter((r) => r !== null).length;
+    if (answeredCnt > 0) {
+      updateSkillMastery(skill.id, correctCnt, answeredCnt);
+    }
+  }, [finished, results, skill.id]);
 
   // 結果画面
   if (finished) {
