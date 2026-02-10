@@ -164,8 +164,12 @@ export function ExerciseSession({
             {skill.display_name}
           </span>
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-50 text-sky-700">
-            {TEMPLATE_ICON[ex.input_template] ?? "📸"}{" "}
-            {ex.input_template.startsWith("SELECT") ? "選択" : "記述"}
+            {TEMPLATE_ICON[ex.input_template] ?? TEMPLATE_ICON[ex.input_template?.toUpperCase()] ?? "📸"}{" "}
+            {(ex.input_template ?? "").toUpperCase().startsWith("SELECT") ? "選択" : "記述"}
+          </span>
+          {/* デバッグ: input_template の生値と choices 件数 */}
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+            {ex.input_template ?? "undefined"} | choices:{ex.choices?.length ?? 0}
           </span>
           <span className="ml-auto text-xs text-amber-500">
             {difficultyStars(ex.difficulty)}

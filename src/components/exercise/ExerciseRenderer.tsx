@@ -10,6 +10,9 @@ import { ImageProcess } from "./ImageProcess";
  * - SELECT_BASIC → SelectBasic
  * - SELECT_MULTI → SelectMulti
  * - それ以外 → ImageProcess（TEXT系もIMAGE扱い）
+ *
+ * Supabase PostgREST が ENUM を小文字で返す場合にも対応するため
+ * toUpperCase() で正規化して比較する
  */
 export function ExerciseRenderer({
   exercise,
@@ -18,7 +21,9 @@ export function ExerciseRenderer({
   exercise: ExerciseWithDetails;
   onComplete: (correct: boolean) => void;
 }) {
-  switch (exercise.input_template) {
+  const template = (exercise.input_template ?? "").toUpperCase();
+
+  switch (template) {
     case "SELECT_BASIC":
       return <SelectBasic exercise={exercise} onComplete={onComplete} />;
     case "SELECT_MULTI":
