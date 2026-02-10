@@ -127,3 +127,40 @@ export interface UnitGroup {
   subject: Subject;
   skills: (Skill & { pattern_count: number; exercise_count: number })[];
 }
+
+// ─── 学習履歴 ───
+
+export type MasteryLevel = "not_started" | "struggling" | "developing" | "proficient" | "mastered";
+export type LearningMode = "self_study" | "free_grading" | "homework";
+
+export interface SkillMastery {
+  id: number;
+  user_id: string;
+  skill_id: string;
+  mastery: MasteryLevel;
+  total_attempts: number;
+  correct_count: number;
+  accuracy: number;
+  last_practiced: string | null;
+  streak: number;
+  best_streak: number;
+  updated_at: string;
+}
+
+export interface AnswerLog {
+  id: number;
+  user_id: string;
+  exercise_id: string;
+  assignment_id: string | null;
+  mode: LearningMode;
+  answer_raw: string | null;
+  answer_image_url: string | null;
+  is_correct: boolean | null;
+  score: number | null;
+  grading_method: string | null;
+  grading_cost: number | null;
+  llm_feedback: Record<string, unknown> | null;
+  time_spent_sec: number | null;
+  attempt_number: number;
+  answered_at: string;
+}
