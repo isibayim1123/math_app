@@ -665,7 +665,9 @@ let serverHasOpenAI = false;
     }
 })();
 
-// ビルド時生成の config.js または /api/config から設定を取得
+let supabaseClient = null;
+
+// ビルド時生成の config.js から設定を取得
 (function autoConfig() {
     const config = window.__PROTO_CONFIG__ || {};
 
@@ -705,8 +707,6 @@ function saveApiKey() {
 }
 
 // ═══ Supabase Config ═══
-let supabaseClient = null;
-
 function initSupabase() {
     const url = localStorage.getItem('supabase_url');
     const key = localStorage.getItem('supabase_anon_key');
