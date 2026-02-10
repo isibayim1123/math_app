@@ -689,9 +689,11 @@ let serverHasOpenAI = false;
             }
         }
 
-        // 全て設定済みなら API設定を閉じたまま
+        // 全て設定済みなら API設定セクションと歯車ボタンを非表示
         if ((config.supabaseUrl || supabaseClient) && (config.hasOpenAI || apiKey)) {
-            document.getElementById('apiKeySection').classList.remove('open');
+            document.getElementById('apiKeySection').style.display = 'none';
+            const settingsBtn = document.querySelector('.settings-btn');
+            if (settingsBtn) settingsBtn.style.display = 'none';
         } else {
             document.getElementById('apiKeySection').classList.add('open');
         }
