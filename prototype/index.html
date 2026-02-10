@@ -651,6 +651,7 @@
 let selectedFile = null;
 let base64Image = null;
 let apiKey = '';
+let serverHasOpenAI = false;
 
 // ═══ Init ═══
 (function init() {
@@ -658,10 +659,49 @@ let apiKey = '';
     if (saved) {
         apiKey = saved;
         document.getElementById('apiKeyInput').value = saved;
-        document.getElementById('apiKeyStatus').textContent = '✓ 設定済み';
+        document.getElementById('apiKeyStatus').textContent = '✓ ローカル設定済み';
         document.getElementById('apiKeyStatus').className = 'api-key-status saved';
-    } else {
-        document.getElementById('apiKeySection').classList.add('open');
+    }
+})();
+
+// サーバーから設定を自動取得（/api/config）
+(async function autoConfig() {
+    try {
+        const res = await fetch('/api/config');
+        if (!res.ok) return;
+        const config = await res.json();
+
+        // Supabase 自動設定
+        if (config.supabaseUrl && config.supabaseAnonKey && !supabaseClient) {
+            supabaseClient = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
+            document.getElementById('supabaseUrlInput').value = config.supabaseUrl;
+            document.getElementById('supabaseKeyInput').value = '(自動設定済み)';
+            document.getElementById('supabaseStatus').textContent = '✓ サーバーから自動設定';
+            document.getElementById('supabaseStatus').className = 'api-key-status saved';
+        }
+
+        // OpenAI サーバー側設定
+        if (config.hasOpenAI) {
+            serverHasOpenAI = true;
+            if (!apiKey) {
+                document.getElementById('apiKeyStatus').textContent = '✓ サーバー側で設定済み（入力不要）';
+                document.getElementById('apiKeyStatus').className = 'api-key-status saved';
+            }
+        }
+
+        // 全て設定済みなら API設定セクションと歯車ボタンを非表示
+        if ((config.supabaseUrl || supabaseClient) && (config.hasOpenAI || apiKey)) {
+            document.getElementById('apiKeySection').style.display = 'none';
+            const settingsBtn = document.querySelector('.settings-btn');
+            if (settingsBtn) settingsBtn.style.display = 'none';
+        } else {
+            document.getElementById('apiKeySection').classList.add('open');
+        }
+    } catch (e) {
+        // /api/config がない場合（ローカル等）は localStorage フォールバック
+        if (!apiKey && !localStorage.getItem('supabase_url')) {
+            document.getElementById('apiKeySection').classList.add('open');
+        }
     }
 })();
 
@@ -1355,7 +1395,7 @@ ${UNIT_KEY_LIST}
 // ═══ API Call ═══
 async function analyze() {
     if (!selectedFile || !base64Image) return;
-    if (!apiKey) { renderError('API設定からAPIキーを入力してください。'); return; }
+    if (!serverHasOpenAI && !apiKey) { renderError('API設定からAPIキーを入力してください。'); return; }
 
     const btn = document.getElementById('analyzeBtn');
     btn.classList.add('loading'); btn.disabled = true;
@@ -1365,47 +1405,74 @@ async function analyze() {
     const startTime = performance.now();
 
     try {
-        const response = await fetch('https://api.openai.com/v1/responses', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-            body: JSON.stringify({
-                model: 'gpt-5-nano',
-                input: [
-                    { role: 'developer', content: getSystemPrompt() },
-                    { role: 'user', content: [
-                        { type: 'input_image', image_url: base64Image },
-                        { type: 'input_text', text: 'この答案を採点してください。' }
-                    ]}
-                ],
-            }),
-        });
-
-        if (!response.ok) {
-            const errData = await response.json().catch(() => null);
-            throw new Error(errData?.error?.message || 'HTTP ' + response.status);
-        }
-
-        const data = await response.json();
-        const processingTime = Math.round(performance.now() - startTime);
-
         let rawText = '';
-        if (data.output) {
-            for (const item of data.output) {
-                if (item.type === 'message' && item.content) {
-                    for (const c of item.content) {
-                        if (c.type === 'output_text') rawText += c.text;
+        let processingTime = 0;
+        let tokens = null;
+
+        if (serverHasOpenAI) {
+            // サーバー側プロキシ経由（APIキー不要）
+            const response = await fetch('/api/grade', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: base64Image,
+                    systemPrompt: getSystemPrompt(),
+                    userText: 'この答案を採点してください。',
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => null);
+                throw new Error(errData?.error || 'HTTP ' + response.status);
+            }
+
+            const data = await response.json();
+            rawText = data.rawText || '';
+            processingTime = data.processingTime || Math.round(performance.now() - startTime);
+            tokens = data.tokens;
+        } else {
+            // クライアント側直接呼び出し（ローカルAPIキー使用）
+            const response = await fetch('https://api.openai.com/v1/responses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                body: JSON.stringify({
+                    model: 'gpt-4o-mini',
+                    input: [
+                        { role: 'developer', content: getSystemPrompt() },
+                        { role: 'user', content: [
+                            { type: 'input_image', image_url: base64Image },
+                            { type: 'input_text', text: 'この答案を採点してください。' }
+                        ]}
+                    ],
+                }),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => null);
+                throw new Error(errData?.error?.message || 'HTTP ' + response.status);
+            }
+
+            const data = await response.json();
+            processingTime = Math.round(performance.now() - startTime);
+
+            if (data.output) {
+                for (const item of data.output) {
+                    if (item.type === 'message' && item.content) {
+                        for (const c of item.content) {
+                            if (c.type === 'output_text') rawText += c.text;
+                        }
                     }
                 }
             }
+            tokens = data.usage ? { input: data.usage.input_tokens, output: data.usage.output_tokens, total: data.usage.total_tokens } : null;
         }
+
         if (!rawText) throw new Error('APIからの応答が空です。');
 
         if (rawText.includes('```json')) rawText = rawText.split('```json')[1].split('```')[0].trim();
         else if (rawText.includes('```')) rawText = rawText.split('```')[1].split('```')[0].trim();
 
         const result = JSON.parse(rawText);
-        const tokens = data.usage ? { input: data.usage.input_tokens, output: data.usage.output_tokens, total: data.usage.total_tokens } : null;
-
         renderResults(result, processingTime, tokens);
     } catch (err) {
         renderError(err.message);
