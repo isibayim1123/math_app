@@ -665,7 +665,7 @@ let serverHasOpenAI = false;
 })();
 
 // サーバーから設定を自動取得（/api/config）
-(async function autoConfig() {
+const autoConfigPromise = (async function autoConfig() {
     try {
         const res = await fetch('/api/config');
         if (!res.ok) return;
@@ -1396,7 +1396,9 @@ ${UNIT_KEY_LIST}
 // ═══ API Call ═══
 async function analyze() {
     if (!selectedFile || !base64Image) return;
-    if (!serverHasOpenAI && !apiKey) { renderError('API設定からAPIキーを入力してください。'); return; }
+    // サーバー設定の取得完了を待つ
+    await autoConfigPromise;
+    if (!serverHasOpenAI && !apiKey) { renderError('OpenAI APIキーが設定されていません。サーバー管理者に確認してください。'); return; }
 
     const btn = document.getElementById('analyzeBtn');
     btn.classList.add('loading'); btn.disabled = true;
