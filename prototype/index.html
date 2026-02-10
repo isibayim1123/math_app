@@ -527,13 +527,13 @@
         </div>
         <div class="header-right">
             <span class="badge">PoC v0.4</span>
-            <button class="settings-btn" onclick="toggleApiKey()" title="API設定">⚙</button>
+            <button class="settings-btn" id="settingsBtn" onclick="toggleApiKey()" title="API設定" style="display:none">⚙</button>
         </div>
     </div>
 </header>
 
 <!-- ═══ API Key (shared across screens) ═══ -->
-<div class="api-key-section" id="apiKeySection" style="margin:0 auto;max-width:520px;">
+<div class="api-key-section" id="apiKeySection" style="margin:0 auto;max-width:520px;display:none;">
     <div class="api-key-header" onclick="toggleApiKey()">
         <span>🔑 API設定</span>
         <span class="api-key-arrow">▼</span>
@@ -689,18 +689,19 @@ let serverHasOpenAI = false;
             }
         }
 
-        // 全て設定済みなら API設定セクションと歯車ボタンを非表示
-        if ((config.supabaseUrl || supabaseClient) && (config.hasOpenAI || apiKey)) {
-            document.getElementById('apiKeySection').style.display = 'none';
-            const settingsBtn = document.querySelector('.settings-btn');
-            if (settingsBtn) settingsBtn.style.display = 'none';
-        } else {
+        // 設定が不足している場合のみ API設定を表示
+        const allConfigured = (config.supabaseUrl || supabaseClient) && (config.hasOpenAI || apiKey);
+        if (!allConfigured) {
+            document.getElementById('apiKeySection').style.display = '';
             document.getElementById('apiKeySection').classList.add('open');
+            document.getElementById('settingsBtn').style.display = '';
         }
     } catch (e) {
-        // /api/config がない場合（ローカル等）は localStorage フォールバック
-        if (!apiKey && !localStorage.getItem('supabase_url')) {
+        // /api/config がない場合（ローカル等）は手動設定を表示
+        if (!apiKey || !supabaseClient) {
+            document.getElementById('apiKeySection').style.display = '';
             document.getElementById('apiKeySection').classList.add('open');
+            document.getElementById('settingsBtn').style.display = '';
         }
     }
 })();
