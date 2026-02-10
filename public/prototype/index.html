@@ -988,9 +988,9 @@ async function getSkillIdForPattern(patternId) {
 }
 
 async function saveAnswerLog(exercise, isCorrect, score, mode, answerRaw, timeSpentSec) {
-    if (!supabaseClient) return;
+    if (!supabaseClient) { console.warn('saveAnswerLog: supabaseClient未初期化'); return; }
     try {
-        await supabaseClient.from('answer_logs').insert({
+        const { error } = await supabaseClient.from('answer_logs').insert({
             user_id: ANONYMOUS_USER_ID,
             exercise_id: exercise.id,
             mode: mode || 'self_study',
@@ -1003,8 +1003,10 @@ async function saveAnswerLog(exercise, isCorrect, score, mode, answerRaw, timeSp
             attempt_number: 1,
             answered_at: new Date().toISOString(),
         });
+        if (error) console.error('answer_log INSERT失敗:', error.message, error.details, error.hint);
+        else console.log('answer_log 保存OK:', exercise.id);
     } catch (e) {
-        console.warn('answer_log 保存失敗:', e);
+        console.warn('answer_log 例外:', e);
     }
 }
 
@@ -1038,13 +1040,15 @@ async function updateSkillMastery(exercise, isCorrect) {
             else if (total >= 2 && accuracy >= 0.4) mastery = 'developing';
             else if (total >= 1) mastery = 'struggling';
 
-            await supabaseClient.from('skill_mastery')
+            const { error: upErr } = await supabaseClient.from('skill_mastery')
                 .update({ total_attempts: total, correct_count: correct, accuracy, streak, best_streak: bestStreak, mastery, last_practiced: now, updated_at: now })
                 .eq('id', row.id);
+            if (upErr) console.error('skill_mastery UPDATE失敗:', upErr.message, upErr.details);
+            else console.log('skill_mastery 更新OK:', skillId, mastery);
         } else {
             // 新規作成
             const mastery = isCorrect ? 'developing' : 'struggling';
-            await supabaseClient.from('skill_mastery').insert({
+            const { error: insErr } = await supabaseClient.from('skill_mastery').insert({
                 user_id: ANONYMOUS_USER_ID,
                 skill_id: skillId,
                 mastery,
@@ -1056,9 +1060,11 @@ async function updateSkillMastery(exercise, isCorrect) {
                 best_streak: isCorrect ? 1 : 0,
                 updated_at: now,
             });
+            if (insErr) console.error('skill_mastery INSERT失敗:', insErr.message, insErr.details);
+            else console.log('skill_mastery 新規作成OK:', skillId, mastery);
         }
     } catch (e) {
-        console.warn('skill_mastery 更新失敗:', e);
+        console.warn('skill_mastery 例外:', e);
     }
 }
 
