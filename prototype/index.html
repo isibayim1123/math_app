@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg-primary: #0a0a0f;
@@ -434,6 +435,74 @@
             text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px;
         }
 
+        /* ═══ Answer Area (SELECT系 UI) ═══ */
+        .answer-area {
+            max-width: 800px; margin: 0 auto; padding: 0 20px 24px;
+        }
+        .choice-list { display: flex; flex-direction: column; gap: 10px; }
+        .choice-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 16px; border-radius: var(--radius-sm);
+            border: 2px solid var(--border); background: var(--bg-card);
+            cursor: pointer; transition: all 0.2s; font-size: 14px;
+        }
+        .choice-item:hover { border-color: var(--border-accent); background: var(--bg-card-hover); }
+        .choice-item.selected { border-color: var(--accent); background: var(--accent-soft); }
+        .choice-item.correct { border-color: var(--success); background: var(--success-soft); }
+        .choice-item.wrong { border-color: var(--error); background: var(--error-soft); }
+        .choice-item.missed { border-color: var(--success); background: var(--success-soft); opacity: 0.7; }
+        .choice-item.disabled { pointer-events: none; opacity: 0.7; }
+        .choice-label {
+            font-weight: 700; color: var(--text-secondary); font-size: 13px;
+            min-width: 24px; flex-shrink: 0;
+        }
+        .choice-expr { flex: 1; }
+        .choice-mark { font-size: 16px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
+        .choice-mark.ok { color: var(--success); }
+        .choice-mark.ng { color: var(--error); }
+        .choice-radio, .choice-check {
+            width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0;
+        }
+        .answer-submit-btn {
+            width: 100%; padding: 14px; margin-top: 16px;
+            border: none; border-radius: var(--radius);
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: white; font-family: inherit; font-size: 15px; font-weight: 700;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .answer-submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow); }
+        .answer-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .answer-result {
+            margin-top: 16px; padding: 14px 16px; border-radius: var(--radius-sm);
+            font-size: 14px; font-weight: 600;
+        }
+        .answer-result.ok { background: var(--success-soft); color: var(--success); border: 1px solid rgba(45,212,168,0.3); }
+        .answer-result.partial { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(255,200,87,0.3); }
+        .answer-result.ng { background: var(--error-soft); color: var(--error); border: 1px solid rgba(255,107,107,0.3); }
+        .answer-explanation {
+            margin-top: 16px; padding: 16px; border-radius: var(--radius-sm);
+            background: var(--bg-card); border: 1px solid var(--border);
+        }
+        .answer-explanation-title {
+            font-size: 12px; font-weight: 600; color: var(--accent);
+            text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+        }
+        .answer-next-btn {
+            width: 100%; padding: 14px; margin-top: 16px;
+            border: none; border-radius: var(--radius);
+            background: var(--bg-card); border: 1px solid var(--border-accent);
+            color: var(--accent); font-family: inherit; font-size: 15px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .answer-next-btn:hover { background: var(--accent-soft); }
+        .template-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 11px; font-weight: 600; padding: 3px 10px;
+            border-radius: 12px; margin-left: 8px;
+        }
+        .template-badge.select { background: rgba(99,179,237,0.15); color: #63b3ed; }
+        .template-badge.image { background: rgba(255,200,87,0.15); color: var(--warning); }
+
         @media (max-width: 600px) {
             .main { padding: 20px 16px 80px; }
             .upload-area { padding: 32px 16px; }
@@ -475,6 +544,17 @@
             <button class="api-key-save" onclick="saveApiKey()">保存</button>
         </div>
         <div class="api-key-status" id="apiKeyStatus">APIキーを入力してください</div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+            <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">Supabase 接続（演習問題の取得）</div>
+            <div class="api-key-row" style="margin-bottom:6px">
+                <input type="text" class="api-key-input" id="supabaseUrlInput" placeholder="https://xxxxx.supabase.co">
+            </div>
+            <div class="api-key-row">
+                <input type="text" class="api-key-input" id="supabaseKeyInput" placeholder="anon key">
+                <button class="api-key-save" onclick="saveSupabaseConfig()">保存</button>
+            </div>
+            <div class="api-key-status" id="supabaseStatus">Supabase URLとAnon Keyを入力</div>
+        </div>
     </div>
 </div>
 
@@ -517,7 +597,10 @@
         </div>
     </div>
 
-    <main class="main">
+    <!-- Answer area for SELECT exercises (radio/checkbox) -->
+    <div class="answer-area" id="answerArea" style="display:none"></div>
+
+    <main class="main" id="uploadMain">
         <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
             <div id="uploadPrompt">
                 <div class="upload-icon">📷</div>
@@ -595,6 +678,273 @@ function saveApiKey() {
     document.getElementById('apiKeyStatus').className = 'api-key-status saved';
     setTimeout(() => toggleApiKey(), 500);
 }
+
+// ═══ Supabase Config ═══
+let supabaseClient = null;
+
+function initSupabase() {
+    const url = localStorage.getItem('supabase_url');
+    const key = localStorage.getItem('supabase_anon_key');
+    if (url && key) {
+        supabaseClient = window.supabase.createClient(url, key);
+        document.getElementById('supabaseUrlInput').value = url;
+        document.getElementById('supabaseKeyInput').value = key;
+        document.getElementById('supabaseStatus').textContent = '✓ 接続設定済み';
+        document.getElementById('supabaseStatus').className = 'api-key-status saved';
+    }
+}
+initSupabase();
+
+function saveSupabaseConfig() {
+    const url = document.getElementById('supabaseUrlInput').value.trim();
+    const key = document.getElementById('supabaseKeyInput').value.trim();
+    if (!url || !key) return;
+    localStorage.setItem('supabase_url', url);
+    localStorage.setItem('supabase_anon_key', key);
+    supabaseClient = window.supabase.createClient(url, key);
+    document.getElementById('supabaseStatus').textContent = '✓ 保存済み';
+    document.getElementById('supabaseStatus').className = 'api-key-status saved';
+    setTimeout(() => toggleApiKey(), 500);
+}
+
+// ═══ Sub-unit → Supabase Skills Mapping ═══
+const SUB_UNIT_TO_SKILLS = {
+    "exp_expand":    ["poly_expand"],
+    "exp_factor":    ["factoring"],
+    "exp_real_ineq": ["real_numbers", "linear_ineq"],
+    "qf_graph":      ["quad_func_graph"],
+    "qf_maxmin":     ["quad_func_max_min"],
+    "qf_eq_ineq":    ["quad_equation", "quad_inequality"],
+    "tr_ratio":      ["trig_ratio_basic", "trig_ratio_special", "trig_identity", "trig_obtuse"],
+    "tr_law":        ["trig_sine_rule", "trig_cosine_rule"],
+    "tr_area":       ["trig_area"],
+};
+
+// キャッシュ: subUnitKey → exercises[]
+const exerciseCache = {};
+
+async function fetchExercisesForSubUnit(subUnitKey) {
+    if (exerciseCache[subUnitKey]) return exerciseCache[subUnitKey];
+    if (!supabaseClient) return null;
+
+    const skillIds = SUB_UNIT_TO_SKILLS[subUnitKey];
+    if (!skillIds || skillIds.length === 0) return null;
+
+    try {
+        // パターンID取得
+        const { data: patterns, error: pErr } = await supabaseClient
+            .from('patterns').select('id').in('skill_id', skillIds);
+        if (pErr || !patterns || patterns.length === 0) return null;
+
+        const patternIds = patterns.map(p => p.id);
+
+        // 演習取得
+        const { data: exercises, error: eErr } = await supabaseClient
+            .from('exercises')
+            .select('id, pattern_id, sort_order, input_template, difficulty, question_text, question_expr, explanation, grading_cost')
+            .in('pattern_id', patternIds)
+            .order('sort_order');
+        if (eErr || !exercises || exercises.length === 0) return null;
+
+        const exerciseIds = exercises.map(e => e.id);
+
+        // 選択肢を並列取得
+        const { data: choices } = await supabaseClient
+            .from('exercise_choices')
+            .select('id, exercise_id, choice_label, choice_expr, is_correct, distractor_note, sort_order')
+            .in('exercise_id', exerciseIds)
+            .order('sort_order');
+
+        // 正解を並列取得
+        const { data: answers } = await supabaseClient
+            .from('exercise_answers')
+            .select('id, exercise_id, answer_expr, normalized_form, is_primary')
+            .in('exercise_id', exerciseIds);
+
+        // 選択肢・正解をマッピング
+        const choicesMap = {};
+        (choices || []).forEach(c => {
+            if (!choicesMap[c.exercise_id]) choicesMap[c.exercise_id] = [];
+            choicesMap[c.exercise_id].push(c);
+        });
+        const answersMap = {};
+        (answers || []).forEach(a => {
+            if (!answersMap[a.exercise_id]) answersMap[a.exercise_id] = [];
+            answersMap[a.exercise_id].push(a);
+        });
+
+        const result = exercises.map(ex => ({
+            ...ex,
+            choices: (choicesMap[ex.id] || []).sort((a, b) => a.sort_order - b.sort_order),
+            answers: answersMap[ex.id] || [],
+            _source: 'supabase',
+        }));
+
+        exerciseCache[subUnitKey] = result;
+        return result;
+    } catch (err) {
+        console.error('Supabase fetch error:', err);
+        return null;
+    }
+}
+
+// ═══ SELECT_BASIC UI ═══
+function renderSelectBasic(exercise, answerArea, onDone) {
+    let selected = -1;
+    let submitted = false;
+    const choices = exercise.choices;
+
+    let html = '<div class="choice-list">';
+    choices.forEach((ch, i) => {
+        html += '<div class="choice-item" data-idx="' + i + '">';
+        html += '<input type="radio" name="select_' + exercise.id + '" class="choice-radio" data-idx="' + i + '">';
+        html += '<span class="choice-label">' + escHtml(ch.choice_label) + '.</span>';
+        html += '<span class="choice-expr">' + renderMixedText('$' + ch.choice_expr + '$') + '</span>';
+        html += '<span class="choice-mark" data-idx="' + i + '"></span>';
+        html += '</div>';
+    });
+    html += '</div>';
+    html += '<button class="answer-submit-btn" id="selectSubmitBtn" disabled>解答する</button>';
+    html += '<div id="selectResult"></div>';
+
+    answerArea.innerHTML = html;
+
+    // クリックイベント
+    answerArea.querySelectorAll('.choice-item').forEach(el => {
+        el.addEventListener('click', () => {
+            if (submitted) return;
+            selected = parseInt(el.dataset.idx);
+            answerArea.querySelectorAll('.choice-item').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            el.querySelector('.choice-radio').checked = true;
+            document.getElementById('selectSubmitBtn').disabled = false;
+        });
+    });
+
+    // 解答ボタン
+    document.getElementById('selectSubmitBtn').addEventListener('click', () => {
+        if (submitted || selected < 0) return;
+        submitted = true;
+        const isCorrect = choices[selected].is_correct;
+
+        answerArea.querySelectorAll('.choice-item').forEach((el, i) => {
+            el.classList.add('disabled');
+            el.classList.remove('selected');
+            if (choices[i].is_correct) {
+                el.classList.add('correct');
+                el.querySelector('.choice-mark').innerHTML = '✓';
+                el.querySelector('.choice-mark').classList.add('ok');
+            } else if (i === selected) {
+                el.classList.add('wrong');
+                el.querySelector('.choice-mark').innerHTML = '✗';
+                el.querySelector('.choice-mark').classList.add('ng');
+            }
+        });
+
+        const resultEl = document.getElementById('selectResult');
+        let resultHtml = '<div class="answer-result ' + (isCorrect ? 'ok' : 'ng') + '">';
+        resultHtml += isCorrect ? '⭕ 正解！' : '❌ 不正解';
+        resultHtml += '</div>';
+
+        if (exercise.explanation) {
+            resultHtml += '<div class="answer-explanation">';
+            resultHtml += '<div class="answer-explanation-title">📝 解説</div>';
+            resultHtml += '<div class="mixed-text">' + renderMixedText(exercise.explanation) + '</div>';
+            resultHtml += '</div>';
+        }
+
+        resultEl.innerHTML = resultHtml;
+        document.getElementById('selectSubmitBtn').style.display = 'none';
+        onDone(isCorrect);
+    });
+}
+
+// ═══ SELECT_MULTI UI ═══
+function renderSelectMulti(exercise, answerArea, onDone) {
+    let checked = new Set();
+    let submitted = false;
+    const choices = exercise.choices;
+    const correctSet = new Set(choices.map((c, i) => c.is_correct ? i : -1).filter(i => i >= 0));
+
+    let html = '<div class="choice-list">';
+    choices.forEach((ch, i) => {
+        html += '<div class="choice-item" data-idx="' + i + '">';
+        html += '<input type="checkbox" class="choice-check" data-idx="' + i + '">';
+        html += '<span class="choice-label">' + escHtml(ch.choice_label) + '.</span>';
+        html += '<span class="choice-expr">' + renderMixedText('$' + ch.choice_expr + '$') + '</span>';
+        html += '<span class="choice-mark" data-idx="' + i + '"></span>';
+        html += '</div>';
+    });
+    html += '</div>';
+    html += '<div style="font-size:12px;color:var(--text-muted);margin-top:8px">※ 正解は複数あります</div>';
+    html += '<button class="answer-submit-btn" id="multiSubmitBtn">解答する</button>';
+    html += '<div id="multiResult"></div>';
+
+    answerArea.innerHTML = html;
+
+    answerArea.querySelectorAll('.choice-item').forEach(el => {
+        el.addEventListener('click', () => {
+            if (submitted) return;
+            const idx = parseInt(el.dataset.idx);
+            const cb = el.querySelector('.choice-check');
+            if (checked.has(idx)) {
+                checked.delete(idx);
+                el.classList.remove('selected');
+                cb.checked = false;
+            } else {
+                checked.add(idx);
+                el.classList.add('selected');
+                cb.checked = true;
+            }
+        });
+    });
+
+    document.getElementById('multiSubmitBtn').addEventListener('click', () => {
+        if (submitted) return;
+        submitted = true;
+
+        const perfect = checked.size === correctSet.size && [...checked].every(i => correctSet.has(i));
+        const anyCorrect = [...checked].some(i => correctSet.has(i));
+        const resultType = perfect ? 'ok' : anyCorrect ? 'partial' : 'ng';
+
+        answerArea.querySelectorAll('.choice-item').forEach((el, i) => {
+            el.classList.add('disabled');
+            el.classList.remove('selected');
+            if (correctSet.has(i) && checked.has(i)) {
+                el.classList.add('correct');
+                el.querySelector('.choice-mark').innerHTML = '✓';
+                el.querySelector('.choice-mark').classList.add('ok');
+            } else if (correctSet.has(i) && !checked.has(i)) {
+                el.classList.add('missed');
+                el.querySelector('.choice-mark').innerHTML = '✓';
+                el.querySelector('.choice-mark').classList.add('ok');
+            } else if (!correctSet.has(i) && checked.has(i)) {
+                el.classList.add('wrong');
+                el.querySelector('.choice-mark').innerHTML = '✗';
+                el.querySelector('.choice-mark').classList.add('ng');
+            }
+        });
+
+        const resultEl = document.getElementById('multiResult');
+        const labels = { ok: '⭕ 正解！', partial: '△ 部分正解', ng: '❌ 不正解' };
+        let resultHtml = '<div class="answer-result ' + resultType + '">' + labels[resultType] + '</div>';
+
+        if (exercise.explanation) {
+            resultHtml += '<div class="answer-explanation">';
+            resultHtml += '<div class="answer-explanation-title">📝 解説</div>';
+            resultHtml += '<div class="mixed-text">' + renderMixedText(exercise.explanation) + '</div>';
+            resultHtml += '</div>';
+        }
+
+        resultEl.innerHTML = resultHtml;
+        document.getElementById('multiSubmitBtn').style.display = 'none';
+        onDone(perfect);
+    });
+}
+
+// ═══ Supabase演習の状態管理 ═══
+let currentSubUnitExercises = null; // Supabaseから取得した演習配列
+let currentExerciseIndex = 0;
 
 // ═══ File Handling ═══
 function handleFileSelect(event) {
@@ -1378,9 +1728,13 @@ function renderUnitDetail(unitKey) {
     let html = '';
     subUnits.forEach(su => {
         const problems = getProblemsForSubUnit(su.key);
-        const problemLabel = problems.length > 0 ? problems.length + '問' : '準備中';
-        html += '<div class="subunit-item" onclick="openSubUnit(\'' + su.key + '\', \'' + unitKey + '\')">'; 
-        html += '<div><div class="subunit-name">' + escHtml(su.name) + '</div>';
+        const cached = exerciseCache[su.key];
+        const count = cached ? cached.length : problems.length;
+        const problemLabel = count > 0 ? count + '問' : '準備中';
+        const supabaseBadge = (supabaseClient && SUB_UNIT_TO_SKILLS[su.key]) ?
+            ' <span style="font-size:10px;color:var(--accent);opacity:0.7">DB</span>' : '';
+        html += '<div class="subunit-item" onclick="openSubUnit(\'' + su.key + '\', \'' + unitKey + '\')">';
+        html += '<div><div class="subunit-name">' + escHtml(su.name) + supabaseBadge + '</div>';
         html += '<div class="subunit-meta">' + escHtml(su.overview) + ' · ' + problemLabel + '</div></div>';
         html += '<span class="subunit-arrow">›</span>';
         html += '</div>';
@@ -1389,14 +1743,31 @@ function renderUnitDetail(unitKey) {
 }
 
 // ═══ Open Sub-unit → Problem List or First Problem ═══
-function openSubUnit(subUnitKey, unitKey) {
+async function openSubUnit(subUnitKey, unitKey) {
+    // Supabase から演習を取得（設定済みの場合）
+    if (supabaseClient && SUB_UNIT_TO_SKILLS[subUnitKey]) {
+        const exercises = await fetchExercisesForSubUnit(subUnitKey);
+        if (exercises && exercises.length > 0) {
+            currentSubUnitExercises = exercises;
+            currentExerciseIndex = 0;
+            navigateTo('problem', {
+                mode: 'supabase',
+                subUnitKey,
+                unitKey,
+                exerciseIndex: 0,
+                totalExercises: exercises.length,
+            });
+            return;
+        }
+    }
+
+    // フォールバック: ハードコードされた問題
+    currentSubUnitExercises = null;
     const problems = getProblemsForSubUnit(subUnitKey);
     if (problems.length === 0) {
-        // No problems yet — show coming-soon in problem screen
         navigateTo('problem', { mode: 'empty', subUnitKey, unitKey });
         return;
     }
-    // Open first problem
     navigateTo('problem', {
         mode: 'problem',
         subUnitKey,
@@ -1415,11 +1786,15 @@ function renderProblemScreen(data) {
     const diffEl = document.getElementById('problemDifficulty');
     const textEl = document.getElementById('problemText');
     const hintEl = document.getElementById('problemHint');
+    const answerArea = document.getElementById('answerArea');
+    const uploadMain = document.getElementById('uploadMain');
 
     resetUploadState();
+    answerArea.style.display = 'none';
+    answerArea.innerHTML = '';
+    uploadMain.style.display = '';
 
     if (data.mode === 'free') {
-        // Free grading mode
         currentProblemContext = null;
         titleEl.textContent = 'フリー採点';
         subEl.textContent = '好きな問題の答案をアップロード';
@@ -1436,7 +1811,6 @@ function renderProblemScreen(data) {
         document.getElementById('problemBackBtn').onclick = function() {
             navigateTo('unit', { unitKey: data.unitKey });
         };
-        // Show empty state in results area
         const rs = document.getElementById('resultsSection');
         rs.innerHTML = '<div class="empty-state" style="padding:60px 20px">' +
             '<div style="font-size:48px;margin-bottom:16px">📝</div>' +
@@ -1448,7 +1822,70 @@ function renderProblemScreen(data) {
         return;
     }
 
-    // Problem mode
+    // ═══ Supabase 演習モード ═══
+    if (data.mode === 'supabase' && currentSubUnitExercises) {
+        const exercise = currentSubUnitExercises[data.exerciseIndex];
+        const su = SUB_UNIT_DB[data.subUnitKey];
+        const unit = UNIT_DB[data.unitKey];
+        if (!exercise || !su) return;
+
+        currentProblemContext = {
+            subUnitKey: data.subUnitKey,
+            unitKey: data.unitKey,
+            problemText: exercise.question_text,
+            problemIndex: data.exerciseIndex,
+            totalProblems: data.totalExercises,
+        };
+
+        titleEl.textContent = su.name;
+        subEl.textContent = (unit ? unit.name + ' · ' : '') + '問題 ' + (data.exerciseIndex + 1) + ' / ' + data.totalExercises;
+
+        displayEl.style.display = 'block';
+        const diffLabels = { 1: '基本', 2: '基本', 3: '標準', 4: '応用', 5: '応用' };
+        const diffClasses = { 1: 'basic', 2: 'basic', 3: 'standard', 4: 'advanced', 5: 'advanced' };
+        const diffLabel = diffLabels[exercise.difficulty] || '標準';
+        const diffClass = diffClasses[exercise.difficulty] || 'standard';
+        const tmpl = (exercise.input_template || '').toUpperCase();
+        const isSelect = tmpl === 'SELECT_BASIC' || tmpl === 'SELECT_MULTI';
+        const templateBadge = '<span class="template-badge ' + (isSelect ? 'select' : 'image') + '">' +
+            (isSelect ? '🔘 選択' : '📸 記述') + '</span>';
+        diffEl.innerHTML = '<span class="diff-badge ' + diffClass + '">' + escHtml(diffLabel) + '</span> ' + templateBadge;
+        textEl.innerHTML = renderMixedText(exercise.question_text);
+
+        // ヒント非表示（Supabase演習にはhintフィールドなし）
+        hintEl.style.display = 'none';
+
+        // 戻るボタン
+        document.getElementById('problemBackBtn').onclick = function() {
+            currentSubUnitExercises = null;
+            navigateTo('unit', { unitKey: data.unitKey });
+        };
+
+        // input_template で UI を切り替え
+        if (tmpl === 'SELECT_BASIC' && exercise.choices && exercise.choices.length > 0) {
+            uploadMain.style.display = 'none';
+            answerArea.style.display = 'block';
+            renderSelectBasic(exercise, answerArea, function(correct) {
+                addSupabaseExerciseNav(data);
+            });
+        } else if (tmpl === 'SELECT_MULTI' && exercise.choices && exercise.choices.length > 0) {
+            uploadMain.style.display = 'none';
+            answerArea.style.display = 'block';
+            renderSelectMulti(exercise, answerArea, function(correct) {
+                addSupabaseExerciseNav(data);
+            });
+        } else {
+            // IMAGE / TEXT 系 → 既存の画像アップロード UI
+            uploadMain.style.display = '';
+            answerArea.style.display = 'none';
+        }
+
+        // 問題ナビ
+        addSupabaseExerciseNav(data);
+        return;
+    }
+
+    // ═══ 従来のハードコード問題モード ═══
     const problem = PROBLEM_DB[data.problemKey];
     const su = SUB_UNIT_DB[data.subUnitKey];
     const unit = UNIT_DB[data.unitKey];
@@ -1529,7 +1966,6 @@ function addProblemNav(data) {
 function gotoProblem(index, subUnitKey, unitKey) {
     const problems = getProblemsForSubUnit(subUnitKey);
     if (index < 0 || index >= problems.length) return;
-    // Don't push to navHistory for prev/next
     renderProblemScreen({
         mode: 'problem',
         subUnitKey,
@@ -1537,6 +1973,57 @@ function gotoProblem(index, subUnitKey, unitKey) {
         problemKey: problems[index].key,
         problemIndex: index,
         totalProblems: problems.length,
+    });
+}
+
+// ═══ Supabase 演習ナビゲーション ═══
+function addSupabaseExerciseNav(data) {
+    const existing = document.getElementById('supabaseNav');
+    if (existing) existing.remove();
+
+    if (!currentSubUnitExercises || currentSubUnitExercises.length <= 1) return;
+
+    const nav = document.createElement('div');
+    nav.id = 'supabaseNav';
+    nav.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:16px 20px;gap:12px;max-width:800px;margin:0 auto;';
+
+    const prevBtn = data.exerciseIndex > 0
+        ? '<button class="nav-back" onclick="gotoSupabaseExercise(' + (data.exerciseIndex - 1) + ',\'' + data.subUnitKey + '\',\'' + data.unitKey + '\')">← 前の問題</button>'
+        : '<span></span>';
+    const nextBtn = data.exerciseIndex < currentSubUnitExercises.length - 1
+        ? '<button class="nav-back" onclick="gotoSupabaseExercise(' + (data.exerciseIndex + 1) + ',\'' + data.subUnitKey + '\',\'' + data.unitKey + '\')" style="border-color:var(--accent);color:var(--accent)">次の問題 →</button>'
+        : '<span></span>';
+
+    const dots = currentSubUnitExercises.map((ex, i) => {
+        const tmpl = (ex.input_template || '').toUpperCase();
+        const color = i === data.exerciseIndex ? 'var(--accent)' :
+            (tmpl.startsWith('SELECT') ? 'rgba(99,179,237,0.5)' : 'var(--border)');
+        return '<span style="width:8px;height:8px;border-radius:50%;background:' + color + '" title="' + escHtml(ex.input_template) + '"></span>';
+    }).join('');
+
+    nav.innerHTML = prevBtn +
+        '<div style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);flex-wrap:wrap;justify-content:center">' + dots + '</div>' +
+        nextBtn;
+
+    // answerArea か uploadMain の後に挿入
+    const answerArea = document.getElementById('answerArea');
+    if (answerArea.style.display !== 'none') {
+        answerArea.appendChild(nav);
+    } else {
+        const uploadMain = document.getElementById('uploadMain');
+        uploadMain.parentNode.insertBefore(nav, uploadMain.nextSibling);
+    }
+}
+
+function gotoSupabaseExercise(index, subUnitKey, unitKey) {
+    if (!currentSubUnitExercises || index < 0 || index >= currentSubUnitExercises.length) return;
+    currentExerciseIndex = index;
+    renderProblemScreen({
+        mode: 'supabase',
+        subUnitKey,
+        unitKey,
+        exerciseIndex: index,
+        totalExercises: currentSubUnitExercises.length,
     });
 }
 
