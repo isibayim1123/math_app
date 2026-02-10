@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>演習デモ — input_template別 UI</title>
+<title>演習デモ — 三角比ユニット</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
@@ -13,486 +13,554 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #f5f5f8; --card: #fff; --border: #e0e0e6;
-  --primary: #4f46e5; --primary-light: #eef2ff;
-  --success: #16a34a; --success-bg: #f0fdf4;
-  --error: #dc2626; --error-bg: #fef2f2;
-  --warning: #d97706; --warning-bg: #fffbeb;
-  --text: #1e1e2e; --text-muted: #6b7280;
-  --radius: 12px;
+  --bg: #f4f5f9;
+  --card: #ffffff;
+  --border: #e2e4ea;
+  --primary: #3b5fe5;
+  --primary-light: #edf0ff;
+  --primary-dark: #2a47b0;
+  --success: #16a34a;
+  --success-bg: #ecfdf5;
+  --error: #dc2626;
+  --error-bg: #fef2f2;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --text: #1a1d2e;
+  --text-muted: #6b7280;
+  --radius: 14px;
+  --shadow: 0 1px 4px rgba(0,0,0,.06);
 }
 body {
   font-family: 'Noto Sans JP', sans-serif;
-  background: var(--bg); color: var(--text);
-  line-height: 1.7; padding: 0; min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  min-height: 100dvh;
+  -webkit-text-size-adjust: 100%;
 }
 
-/* ヘッダー */
+/* ===== ヘッダー ===== */
 .header {
-  background: var(--primary); color: #fff;
-  padding: 16px 20px; position: sticky; top: 0; z-index: 100;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  padding: 18px 20px 14px;
 }
-.header h1 { font-size: 18px; font-weight: 700; }
-.header p { font-size: 12px; opacity: .8; margin-top: 2px; }
+.header h1 { font-size: 17px; font-weight: 700; letter-spacing: .02em; }
+.header-sub { font-size: 12px; opacity: .8; margin-top: 3px; }
 
-/* フィルター */
-.filters {
-  display: flex; gap: 8px; padding: 12px 16px;
-  overflow-x: auto; background: #fff;
+/* ===== 進捗バー ===== */
+.progress-section {
+  background: #fff;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border);
-  position: sticky; top: 60px; z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+.progress-bar-track {
+  flex: 1;
+  height: 8px;
+  background: #e8eaef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary), #6366f1);
+  border-radius: 4px;
+  transition: width .4s ease;
+}
+.progress-text {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  min-width: 90px;
+  text-align: right;
+}
+
+/* ===== フィルター ===== */
+.filters {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
 }
 .filter-btn {
-  flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
-  border: 1.5px solid var(--border); background: #fff;
-  font-size: 13px; font-family: inherit; cursor: pointer;
+  flex-shrink: 0;
+  padding: 7px 16px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
   transition: all .15s;
+  color: var(--text-muted);
 }
 .filter-btn.active {
-  background: var(--primary); color: #fff;
+  background: var(--primary);
+  color: #fff;
   border-color: var(--primary);
 }
-.filter-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
-
-/* スコアバー */
-.score-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 16px; background: var(--primary-light);
-  font-size: 13px; font-weight: 500;
+.filter-btn:hover:not(.active) {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
-/* カードリスト */
-.card-list { padding: 16px; display: flex; flex-direction: column; gap: 16px; max-width: 720px; margin: 0 auto; }
+/* ===== カードリスト ===== */
+.card-list {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 700px;
+  margin: 0 auto;
+  padding-bottom: 60px;
+}
 
-/* 演習カード */
+/* ===== カード ===== */
 .card {
-  background: var(--card); border-radius: var(--radius);
-  box-shadow: 0 1px 3px rgba(0,0,0,.06); overflow: hidden;
-  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  transition: border-color .2s;
 }
-.card.correct { border-color: var(--success); }
-.card.incorrect { border-color: var(--error); }
+.card.result-ok { border-color: var(--success); }
+.card.result-ng { border-color: var(--error); }
+.card.result-partial { border-color: var(--warning); }
 
 .card-head {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-  padding: 12px 16px; border-bottom: 1px solid var(--border);
-  background: #fafafe;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: #fafafd;
 }
 .badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 10px; border-radius: 12px;
-  font-size: 11px; font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
 }
-.badge-skill { background: #ede9fe; color: #5b21b6; }
-.badge-template { background: #e0f2fe; color: #0369a1; }
-.stars { color: var(--warning); font-size: 13px; letter-spacing: 1px; }
+.badge-skill { background: #ede9fe; color: #6d28d9; }
+.badge-type { background: #e0f2fe; color: #0369a1; }
+.stars { color: #f59e0b; font-size: 12px; letter-spacing: .5px; margin-left: auto; }
 
 .card-body { padding: 16px; }
-.question-text { font-size: 15px; margin-bottom: 16px; line-height: 1.8; }
+.question-text {
+  font-size: 15px;
+  line-height: 1.85;
+  margin-bottom: 16px;
+}
 
-/* 選択肢 */
+/* ===== SELECT系 共通 ===== */
 .choices { display: flex; flex-direction: column; gap: 8px; }
 .choice-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px; border: 1.5px solid var(--border);
-  border-radius: 8px; cursor: pointer; transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .15s;
   font-size: 14px;
+  user-select: none;
 }
 .choice-item:hover { border-color: var(--primary); background: var(--primary-light); }
-.choice-item input { flex-shrink: 0; accent-color: var(--primary); }
-.choice-item.selected { border-color: var(--primary); background: var(--primary-light); }
-.choice-item.correct-choice { border-color: var(--success); background: var(--success-bg); }
-.choice-item.incorrect-choice { border-color: var(--error); background: var(--error-bg); }
-
-/* テキスト入力 */
-.text-input-area { display: flex; gap: 8px; align-items: stretch; }
-.text-input-area input {
-  flex: 1; padding: 10px 14px; border: 1.5px solid var(--border);
-  border-radius: 8px; font-size: 15px; font-family: inherit;
-  outline: none; transition: border-color .15s;
+.choice-item input[type="radio"],
+.choice-item input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
 }
-.text-input-area input:focus { border-color: var(--primary); }
+.choice-label-text { font-weight: 600; margin-right: 2px; }
+.choice-item.locked { cursor: default; pointer-events: none; }
+.choice-item.is-correct { border-color: var(--success); background: var(--success-bg); }
+.choice-item.is-wrong { border-color: var(--error); background: var(--error-bg); }
+.choice-item.is-missed { border-color: var(--success); background: var(--success-bg); opacity: .7; }
 
-/* ボタン */
+/* ===== 解答ボタン ===== */
+.submit-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
 .btn {
-  padding: 8px 20px; border-radius: 8px; border: none;
-  font-size: 14px; font-family: inherit; font-weight: 500;
-  cursor: pointer; transition: all .15s;
+  padding: 9px 22px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
 }
 .btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:hover { opacity: .9; }
-.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
 
-/* IMAGE_PROCESS */
-.image-upload-area {
-  border: 2px dashed var(--border); border-radius: 8px;
-  padding: 24px; text-align: center; color: var(--text-muted);
+/* ===== IMAGE / 記述系 ===== */
+.image-area { text-align: center; }
+.upload-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 28px 16px;
+  background: #f8fafc;
+  transition: border-color .2s, background .2s;
 }
-.image-upload-area .icon { font-size: 36px; margin-bottom: 8px; }
-.image-upload-area p { font-size: 13px; }
-.cost-notice {
-  margin-top: 12px; padding: 10px 14px;
-  background: var(--warning-bg); border-radius: 8px;
-  font-size: 13px; color: var(--warning); display: none;
+.upload-zone.has-file { border-style: solid; border-color: var(--primary); background: var(--primary-light); }
+.upload-icon { font-size: 40px; margin-bottom: 8px; }
+.upload-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+.btn-camera, .btn-file {
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-camera:hover, .btn-file:hover { border-color: var(--primary); color: var(--primary); }
+.upload-preview {
+  margin-top: 12px;
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 8px;
+  object-fit: contain;
+  display: none;
+}
+.ai-grading-box {
+  display: none;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 10px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  text-align: left;
+}
+.ai-spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2.5px solid #93c5fd;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.cost-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+.rubric-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.rubric-table th, .rubric-table td {
+  padding: 7px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.rubric-table th { background: #f1f5f9; font-weight: 600; }
+.model-answer {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--success-bg);
+  border-radius: 8px;
+  border-left: 3px solid var(--success);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.model-answer-label {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--success);
+  margin-bottom: 4px;
 }
 
-/* 結果 */
-.result-area { margin-top: 12px; padding: 12px 14px; border-radius: 8px; font-size: 14px; }
-.result-correct { background: var(--success-bg); color: var(--success); }
-.result-incorrect { background: var(--error-bg); color: var(--error); }
-.result-partial { background: var(--warning-bg); color: var(--warning); }
-
-/* 解説 */
-.explanation-toggle {
-  margin-top: 12px; font-size: 13px; color: var(--primary);
-  cursor: pointer; display: none; user-select: none;
+/* ===== 正誤バナー ===== */
+.result-banner {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
 }
-.explanation-content {
-  display: none; margin-top: 8px; padding: 12px 14px;
-  background: #f8f8fc; border-radius: 8px; font-size: 14px;
-  line-height: 1.8; border-left: 3px solid var(--primary);
+.result-banner.ok { background: var(--success-bg); color: var(--success); }
+.result-banner.ng { background: var(--error-bg); color: var(--error); }
+.result-banner.partial { background: var(--warning-bg); color: var(--warning); }
+
+/* ===== 解説 ===== */
+.explanation-btn {
+  display: none;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--primary);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+.explanation-box {
+  display: none;
+  margin-top: 8px;
+  padding: 12px 14px;
+  background: #f8f8fd;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.85;
+  border-left: 3px solid var(--primary);
 }
 
-/* ルーブリック */
-.rubric-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
-.rubric-table th, .rubric-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
-.rubric-table th { background: #f8f8fc; font-weight: 500; }
-
-/* レスポンシブ */
+/* ===== レスポンシブ ===== */
 @media (max-width: 480px) {
   .card-list { padding: 10px; gap: 12px; }
-  .card-body { padding: 12px; }
+  .card-body { padding: 14px; }
   .question-text { font-size: 14px; }
+  .upload-buttons { flex-direction: column; align-items: stretch; }
 }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>演習デモ — input_template別 UI</h1>
-  <p>三角比ユニットから13問をピックアップ</p>
+  <h1>演習デモ — 三角比ユニット</h1>
+  <div class="header-sub">数学I ／ 3種類のUI ／ 11問</div>
+</div>
+
+<div class="progress-section">
+  <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">0 / 11 解答済み</div>
 </div>
 
 <div class="filters" id="filters">
-  <button class="filter-btn active" data-filter="all">全表示 (13)</button>
-  <button class="filter-btn" data-filter="SELECT">🔘 SELECT (5)</button>
-  <button class="filter-btn" data-filter="TEXT">✏️ TEXT (6)</button>
-  <button class="filter-btn" data-filter="IMAGE">📸 IMAGE (2)</button>
-</div>
-
-<div class="score-bar" id="scoreBar">
-  <span>正解: <strong id="correctCount">0</strong> / <strong id="totalAnswered">0</strong></span>
-  <span id="accuracyText">正答率: —</span>
+  <button class="filter-btn active" data-filter="all">すべて (11)</button>
+  <button class="filter-btn" data-filter="select">🔘 選択 (5)</button>
+  <button class="filter-btn" data-filter="image">📸 記述 (6)</button>
 </div>
 
 <div class="card-list" id="cardList"></div>
 
 <script>
 // ============================================================
-// データ（004_trigonometry_seed.sql からピックアップ）
+// マスターデータ
 // ============================================================
-
 const SKILLS = {
-  trig_ratio_basic:   { display_name: '三角比の定義',     unit: '三角比' },
-  trig_ratio_special: { display_name: '特殊角の三角比',   unit: '三角比' },
-  trig_identity:      { display_name: '三角比の相互関係', unit: '三角比' },
-  trig_obtuse:        { display_name: '鈍角の三角比',     unit: '三角比' },
-  trig_sine_rule:     { display_name: '正弦定理',         unit: '三角比' },
-  trig_cosine_rule:   { display_name: '余弦定理',         unit: '三角比' },
-  trig_area:          { display_name: '三角形の面積',     unit: '三角比' }
+  trig_ratio_basic:   '三角比の定義',
+  trig_ratio_special: '特殊角の三角比',
+  trig_identity:      '三角比の相互関係',
+  trig_obtuse:        '鈍角の三角比',
+  trig_sine_rule:     '正弦定理',
+  trig_cosine_rule:   '余弦定理',
+  trig_area:          '三角形の面積'
 };
 
 const PATTERNS = {
-  trb__definition:     { skill_id: 'trig_ratio_basic',   display_name: '直角三角形からsin/cos/tanを求める' },
-  trb__find_ratio:     { skill_id: 'trig_ratio_basic',   display_name: '三平方の定理との組合せ' },
-  trs__value:          { skill_id: 'trig_ratio_special', display_name: '30°/45°/60°の三角比の値' },
-  tri__pythagorean:    { skill_id: 'trig_identity',      display_name: 'ピタゴラス恒等式' },
-  tri__transform:      { skill_id: 'trig_identity',      display_name: '式の値を求める' },
-  tro__unit_circle:    { skill_id: 'trig_obtuse',        display_name: '単位円とsin/cos/tanの符号' },
-  tro__find_angle:     { skill_id: 'trig_obtuse',        display_name: 'sinθ/cosθの値から角度を求める' },
-  tsr__circumradius:   { skill_id: 'trig_sine_rule',     display_name: '外接円の半径' },
-  tcr__find_angle:     { skill_id: 'trig_cosine_rule',   display_name: '角の大きさを求める' },
-  tar__two_sides_angle:{ skill_id: 'trig_area',          display_name: '2辺と挟角から面積' }
+  'trb__definition':     { skill: 'trig_ratio_basic' },
+  'trb__find_ratio':     { skill: 'trig_ratio_basic' },
+  'trs__value':          { skill: 'trig_ratio_special' },
+  'tri__pythagorean':    { skill: 'trig_identity' },
+  'tri__transform':      { skill: 'trig_identity' },
+  'tro__unit_circle':    { skill: 'trig_obtuse' },
+  'tro__find_angle':     { skill: 'trig_obtuse' },
+  'tsr__circumradius':   { skill: 'trig_sine_rule' },
+  'tcr__find_angle':     { skill: 'trig_cosine_rule' },
+  'tar__two_sides_angle':{ skill: 'trig_area' }
 };
 
-const TEMPLATE_INFO = {
-  SELECT_BASIC:    { icon: '🔘', label: '4択単一',       category: 'SELECT' },
-  SELECT_MULTI:    { icon: '☑️', label: '複数選択',      category: 'SELECT' },
-  TEXT_NUMERIC:    { icon: '🔢', label: '数値入力',       category: 'TEXT' },
-  TEXT_EXPRESSION: { icon: '✏️', label: '数式入力',      category: 'TEXT' },
-  IMAGE_PROCESS:   { icon: '📸', label: '手書き途中式',   category: 'IMAGE' }
-};
+// UI種別マッピング: TEXT系は IMAGE 扱い
+function uiType(tmpl) {
+  if (tmpl === 'SELECT_BASIC') return 'select_basic';
+  if (tmpl === 'SELECT_MULTI') return 'select_multi';
+  return 'image'; // TEXT_NUMERIC, TEXT_EXPRESSION, IMAGE_PROCESS → image
+}
+function uiCategory(tmpl) {
+  return tmpl.startsWith('SELECT') ? 'select' : 'image';
+}
+function uiIcon(tmpl) {
+  if (tmpl === 'SELECT_BASIC') return '🔘';
+  if (tmpl === 'SELECT_MULTI') return '☑️';
+  return '📸';
+}
+function uiLabel(tmpl) {
+  if (tmpl === 'SELECT_BASIC') return '4択';
+  if (tmpl === 'SELECT_MULTI') return '複数選択';
+  return '記述（AI採点）';
+}
+function skillName(patId) {
+  const p = PATTERNS[patId];
+  return p ? (SKILLS[p.skill] || '') : '';
+}
+function starsHTML(d) { return '★'.repeat(d) + '☆'.repeat(5 - d); }
 
+// ============================================================
+// 演習データ (004_trigonometry_seed.sql より)
+// ============================================================
 const EXERCISES = [
-  // === SELECT_BASIC (3) ===
+  // ─── SELECT_BASIC ───
   {
     id: 'drill_trb_def_01', pattern_id: 'trb__definition',
     input_template: 'SELECT_BASIC', difficulty: 1,
     question_text: '直角三角形ABCで $\\angle C = 90°$、$AB = 13$、$BC = 5$、$CA = 12$ のとき、$\\sin A$ はどれか。',
-    explanation: '$\\angle A$ の対辺は $BC = 5$、斜辺は $AB = 13$。$\\sin A = \\frac{\\text{対辺}}{\\text{斜辺}} = \\frac{5}{13}$。',
+    explanation: '$\\angle A$ の対辺は $BC = 5$、斜辺は $AB = 13$。\n\n$\\sin A = \\frac{\\text{対辺}}{\\text{斜辺}} = \\frac{5}{13}$',
     choices: [
-      { label: 'A', expr: '\\frac{5}{13}',  is_correct: true,  note: null },
-      { label: 'B', expr: '\\frac{12}{13}', is_correct: false, note: 'cosAと混同: 隣辺/斜辺を計算' },
-      { label: 'C', expr: '\\frac{5}{12}',  is_correct: false, note: 'tanAと混同: 対辺/隣辺を計算' },
-      { label: 'D', expr: '\\frac{13}{5}',  is_correct: false, note: '逆数: 斜辺/対辺を計算' }
+      { label: 'A', expr: '\\frac{5}{13}',  correct: true },
+      { label: 'B', expr: '\\frac{12}{13}', correct: false },
+      { label: 'C', expr: '\\frac{5}{12}',  correct: false },
+      { label: 'D', expr: '\\frac{13}{5}',  correct: false }
     ]
   },
   {
     id: 'drill_trs_val_01', pattern_id: 'trs__value',
     input_template: 'SELECT_BASIC', difficulty: 1,
     question_text: '$\\cos 60°$ の値はどれか。',
-    explanation: '30°-60°-90°の直角三角形で、60°の隣辺は1、斜辺は2。$\\cos 60° = \\frac{1}{2}$。',
+    explanation: '30°-60°-90°の直角三角形で、60°の隣辺は1、斜辺は2。\n\n$\\cos 60° = \\frac{1}{2}$',
     choices: [
-      { label: 'A', expr: '\\frac{1}{2}',         is_correct: true,  note: null },
-      { label: 'B', expr: '\\frac{\\sqrt{3}}{2}',  is_correct: false, note: 'sin60°と混同' },
-      { label: 'C', expr: '1',                      is_correct: false, note: 'cos0°と混同' },
-      { label: 'D', expr: '\\frac{\\sqrt{2}}{2}',  is_correct: false, note: 'cos45°と混同' }
+      { label: 'A', expr: '\\frac{1}{2}',        correct: true },
+      { label: 'B', expr: '\\frac{\\sqrt{3}}{2}', correct: false },
+      { label: 'C', expr: '1',                     correct: false },
+      { label: 'D', expr: '\\frac{\\sqrt{2}}{2}', correct: false }
     ]
   },
   {
     id: 'drill_tcr_fa_01', pattern_id: 'tcr__find_angle',
     input_template: 'SELECT_BASIC', difficulty: 2,
     question_text: '△ABCで $a = 5$、$b = 6$、$c = 7$ のとき、$\\cos C$ はどれか。',
-    explanation: '$\\cos C = \\frac{a^2 + b^2 - c^2}{2ab} = \\frac{25 + 36 - 49}{2 \\cdot 5 \\cdot 6} = \\frac{12}{60} = \\frac{1}{5}$。',
+    explanation: '$\\cos C = \\frac{a^2 + b^2 - c^2}{2ab} = \\frac{25 + 36 - 49}{2 \\cdot 5 \\cdot 6} = \\frac{12}{60} = \\frac{1}{5}$',
     choices: [
-      { label: 'A', expr: '\\frac{1}{5}',   is_correct: true,  note: null },
-      { label: 'B', expr: '\\frac{1}{7}',   is_correct: false, note: '分母を2·5·7と誤って計算' },
-      { label: 'C', expr: '\\frac{12}{70}',  is_correct: false, note: '分母2abのaを7と取り違え' },
-      { label: 'D', expr: '-\\frac{1}{5}',   is_correct: false, note: '分子の符号ミス' }
+      { label: 'A', expr: '\\frac{1}{5}',   correct: true },
+      { label: 'B', expr: '\\frac{1}{7}',   correct: false },
+      { label: 'C', expr: '\\frac{12}{70}', correct: false },
+      { label: 'D', expr: '-\\frac{1}{5}',  correct: false }
     ]
   },
 
-  // === SELECT_MULTI (2) ===
+  // ─── SELECT_MULTI ───
   {
     id: 'drill_trs_val_03', pattern_id: 'trs__value',
     input_template: 'SELECT_MULTI', difficulty: 2,
     question_text: '次のうち、値が $\\frac{\\sqrt{3}}{2}$ であるものをすべて選べ。',
-    explanation: '$\\sin 60° = \\frac{\\sqrt{3}}{2}$、$\\cos 30° = \\frac{\\sqrt{3}}{2}$。$\\sin 30° = \\frac{1}{2}$、$\\cos 45° = \\frac{\\sqrt{2}}{2}$。',
+    explanation: '$\\sin 60° = \\frac{\\sqrt{3}}{2}$、$\\cos 30° = \\frac{\\sqrt{3}}{2}$。\n\n$\\sin 30° = \\frac{1}{2}$、$\\cos 45° = \\frac{\\sqrt{2}}{2}$ なのでこれらは不正解。',
     choices: [
-      { label: 'A', expr: '\\sin 60°',  is_correct: true,  note: null },
-      { label: 'B', expr: '\\cos 30°',  is_correct: true,  note: null },
-      { label: 'C', expr: '\\sin 30°',  is_correct: false, note: '値は1/2' },
-      { label: 'D', expr: '\\cos 45°',  is_correct: false, note: '値は√2/2' }
+      { label: 'A', expr: '\\sin 60°', correct: true },
+      { label: 'B', expr: '\\cos 30°', correct: true },
+      { label: 'C', expr: '\\sin 30°', correct: false },
+      { label: 'D', expr: '\\cos 45°', correct: false }
     ]
   },
   {
     id: 'drill_tro_uc_02', pattern_id: 'tro__unit_circle',
     input_template: 'SELECT_MULTI', difficulty: 2,
     question_text: '$0° < \\theta < 180°$ において、$\\theta$ が鈍角のとき負の値をとるものをすべて選べ。',
-    explanation: '鈍角（$90° < \\theta < 180°$）のとき $\\cos\\theta < 0$、$\\tan\\theta < 0$。$\\sin\\theta > 0$ は常に正。$\\sin\\theta \\cos\\theta$ は正×負＝負。',
+    explanation: '鈍角（$90° < \\theta < 180°$）では $\\cos\\theta < 0$、$\\tan\\theta < 0$。\n\n$\\sin\\theta$ は $0°$〜$180°$ で常に $\\geqq 0$。\n\n$\\sin\\theta \\cos\\theta$ は 正×負＝負。',
     choices: [
-      { label: 'A', expr: '\\cos\\theta',            is_correct: true,  note: null },
-      { label: 'B', expr: '\\tan\\theta',            is_correct: true,  note: null },
-      { label: 'C', expr: '\\sin\\theta',            is_correct: false, note: '0°〜180°ではsinθは常に0以上' },
-      { label: 'D', expr: '\\sin\\theta \\cos\\theta', is_correct: true,  note: null }
+      { label: 'A', expr: '\\cos\\theta',              correct: true },
+      { label: 'B', expr: '\\tan\\theta',              correct: true },
+      { label: 'C', expr: '\\sin\\theta',              correct: false },
+      { label: 'D', expr: '\\sin\\theta \\cos\\theta', correct: true }
     ]
   },
 
-  // === TEXT_NUMERIC (3) ===
+  // ─── TEXT_NUMERIC → IMAGE 扱い ───
   {
     id: 'drill_trb_def_02', pattern_id: 'trb__definition',
     input_template: 'TEXT_NUMERIC', difficulty: 2,
     question_text: '直角三角形ABCで $\\angle C = 90°$、$AB = 10$、$BC = 6$、$CA = 8$ のとき、$\\tan A$ の値を求めよ。',
-    explanation: '$\\angle A$ の対辺は $BC = 6$、隣辺は $CA = 8$。$\\tan A = \\frac{6}{8} = \\frac{3}{4}$。',
-    answers: [
-      { expr: '\\frac{3}{4}', normalized: '3/4', is_primary: true },
-      { expr: '0.75',         normalized: '0.75', is_primary: false },
-      { expr: '\\frac{6}{8}', normalized: '3/4',  is_primary: false }
-    ]
+    explanation: '$\\angle A$ の対辺は $BC = 6$、隣辺は $CA = 8$。\n\n$\\tan A = \\frac{6}{8} = \\frac{3}{4}$',
+    model_answer: '$\\tan A = \\frac{3}{4}$'
   },
   {
     id: 'drill_tri_pyth_02', pattern_id: 'tri__pythagorean',
     input_template: 'TEXT_NUMERIC', difficulty: 2,
     question_text: '$0° < \\theta < 90°$ で $\\sin \\theta = \\frac{1}{3}$ のとき、$\\cos \\theta$ の値を求めよ。',
-    explanation: '$\\cos^2\\theta = 1 - \\frac{1}{9} = \\frac{8}{9}$。$\\cos\\theta > 0$ より $\\cos\\theta = \\frac{2\\sqrt{2}}{3}$。',
-    answers: [
-      { expr: '\\frac{2\\sqrt{2}}{3}', normalized: '2sqrt(2)/3', is_primary: true },
-      { expr: '\\frac{\\sqrt{8}}{3}',  normalized: '2sqrt(2)/3', is_primary: false }
-    ]
-  },
-  {
-    id: 'drill_tsr_cr_02', pattern_id: 'tsr__circumradius',
-    input_template: 'TEXT_NUMERIC', difficulty: 2,
-    question_text: '△ABCで $c = 5$、$C = 90°$ のとき、外接円の半径 $R$ を求めよ。',
-    explanation: '$2R = \\frac{5}{\\sin 90°} = \\frac{5}{1} = 5$。$R = \\frac{5}{2}$。',
-    answers: [
-      { expr: '\\frac{5}{2}', normalized: '5/2', is_primary: true },
-      { expr: '2.5',          normalized: '2.5', is_primary: false }
-    ]
+    explanation: '$\\cos^2\\theta = 1 - \\frac{1}{9} = \\frac{8}{9}$\n\n$\\cos\\theta > 0$ より $\\cos\\theta = \\frac{2\\sqrt{2}}{3}$',
+    model_answer: '$\\cos\\theta = \\frac{2\\sqrt{2}}{3}$'
   },
 
-  // === TEXT_EXPRESSION (3) ===
+  // ─── TEXT_EXPRESSION → IMAGE 扱い ───
   {
     id: 'drill_tro_fa_02', pattern_id: 'tro__find_angle',
     input_template: 'TEXT_EXPRESSION', difficulty: 3,
     question_text: '$0° \\leqq \\theta \\leqq 180°$ で $\\sin \\theta = \\frac{\\sqrt{3}}{2}$ を満たす $\\theta$ をすべて求めよ。',
-    explanation: '$\\sin 60° = \\frac{\\sqrt{3}}{2}$ より $\\theta = 60°$。$\\sin(180°-60°) = \\sin 120° = \\frac{\\sqrt{3}}{2}$ より $\\theta = 120°$ も解。',
-    answers: [
-      { expr: '\\theta = 60°,\\; 120°', normalized: 'θ=60°,120°', is_primary: true },
-      { expr: '60°, 120°',              normalized: 'θ=60°,120°', is_primary: false }
-    ]
+    explanation: '$\\sin 60° = \\frac{\\sqrt{3}}{2}$ より $\\theta = 60°$。\n\n$\\sin(180° - 60°) = \\sin 120° = \\frac{\\sqrt{3}}{2}$ より $\\theta = 120°$ も解。',
+    model_answer: '$\\theta = 60°, \\; 120°$'
   },
   {
     id: 'drill_tcr_fa_02', pattern_id: 'tcr__find_angle',
     input_template: 'TEXT_EXPRESSION', difficulty: 3,
-    question_text: '△ABCで $a = 3$、$b = 4$、$c = 6$ のとき、$C$ の大きさを求めよ。',
-    explanation: '$\\cos C = \\frac{9 + 16 - 36}{2 \\cdot 3 \\cdot 4} = \\frac{-11}{24}$。$\\cos C < 0$ なので $C$ は鈍角。$C = \\arccos\\left(-\\frac{11}{24}\\right)$。',
-    answers: [
-      { expr: '\\cos C = -\\frac{11}{24}', normalized: 'cosC=-11/24', is_primary: true }
-    ]
-  },
-  {
-    id: 'drill_tar_tsa_02', pattern_id: 'tar__two_sides_angle',
-    input_template: 'TEXT_EXPRESSION', difficulty: 2,
-    question_text: '△ABCで $b = 10$、$c = 6$、$A = 90°$ のとき、面積 $S$ を求めよ。',
-    explanation: '$S = \\frac{1}{2} \\cdot 10 \\cdot 6 \\cdot \\sin 90° = \\frac{1}{2} \\cdot 60 \\cdot 1 = 30$。',
-    answers: [
-      { expr: '30', normalized: '30', is_primary: true }
-    ]
+    question_text: '△ABCで $a = 3$、$b = 4$、$c = 6$ のとき、$\\cos C$ の値を求めよ。',
+    explanation: '$\\cos C = \\frac{9 + 16 - 36}{2 \\cdot 3 \\cdot 4} = \\frac{-11}{24}$\n\n$\\cos C < 0$ なので $C$ は鈍角。',
+    model_answer: '$\\cos C = -\\frac{11}{24}$'
   },
 
-  // === IMAGE_PROCESS (2) ===
+  // ─── IMAGE_PROCESS ───
   {
     id: 'drill_trb_fr_03', pattern_id: 'trb__find_ratio',
     input_template: 'IMAGE_PROCESS', difficulty: 4,
     question_text: '直角三角形ABCで $\\angle C = 90°$、$AB = \\sqrt{13}$、$BC = 2$ のとき、$\\sin A$、$\\cos A$、$\\tan A$ の値をすべて求めよ。途中式も書くこと。',
-    explanation: '$CA^2 = AB^2 - BC^2 = 13 - 4 = 9$ より $CA = 3$。$\\sin A = \\frac{2}{\\sqrt{13}} = \\frac{2\\sqrt{13}}{13}$、$\\cos A = \\frac{3}{\\sqrt{13}} = \\frac{3\\sqrt{13}}{13}$、$\\tan A = \\frac{2}{3}$。',
+    explanation: '$CA^2 = AB^2 - BC^2 = 13 - 4 = 9$ より $CA = 3$。\n\n$\\sin A = \\frac{2}{\\sqrt{13}} = \\frac{2\\sqrt{13}}{13}$\n\n$\\cos A = \\frac{3}{\\sqrt{13}} = \\frac{3\\sqrt{13}}{13}$\n\n$\\tan A = \\frac{2}{3}$',
     grading_cost: 5,
     rubrics: [
-      { criterion: '三平方の定理でCAを求める',  max_points: 2, description: 'CA² = 13 - 4 = 9 → CA = 3 の計算が正しい' },
-      { criterion: 'sinA, cosA, tanAの立式',    max_points: 2, description: '対辺/斜辺, 隣辺/斜辺, 対辺/隣辺の各立式が正しい' },
-      { criterion: '分母の有理化',              max_points: 1, description: '√13を含む分数を有理化している（有理化なしでも部分点）' }
+      { criterion: '三平方の定理でCAを求める', points: 2, desc: 'CA² = 13 - 4 = 9 → CA = 3 の計算が正しい' },
+      { criterion: 'sinA, cosA, tanAの立式',   points: 2, desc: '対辺/斜辺, 隣辺/斜辺, 対辺/隣辺の各立式が正しい' },
+      { criterion: '分母の有理化',             points: 1, desc: '√13を含む分数を有理化している' }
     ]
   },
   {
     id: 'drill_tri_tf_03', pattern_id: 'tri__transform',
     input_template: 'IMAGE_PROCESS', difficulty: 4,
     question_text: '$\\cos \\theta = \\frac{1}{4}$（$0° < \\theta < 90°$）のとき、$\\frac{\\sin^2\\theta}{1 + \\cos\\theta}$ の値を求めよ。途中式も書くこと。',
-    explanation: '$\\sin^2\\theta = 1 - \\cos^2\\theta = (1 - \\cos\\theta)(1 + \\cos\\theta)$ と因数分解。$\\frac{(1-\\cos\\theta)(1+\\cos\\theta)}{1+\\cos\\theta} = 1 - \\cos\\theta = 1 - \\frac{1}{4} = \\frac{3}{4}$。',
+    explanation: '$\\sin^2\\theta = 1 - \\cos^2\\theta = (1 - \\cos\\theta)(1 + \\cos\\theta)$ と因数分解。\n\n$\\frac{(1-\\cos\\theta)(1+\\cos\\theta)}{1+\\cos\\theta} = 1 - \\cos\\theta = 1 - \\frac{1}{4} = \\frac{3}{4}$',
     grading_cost: 5,
     rubrics: [
-      { criterion: 'sin²θの変換',   max_points: 2, description: 'sin²θ = 1 - cos²θ または (1-cosθ)(1+cosθ) への変換が正しい' },
-      { criterion: '約分',          max_points: 2, description: '(1+cosθ) で約分する処理が正しい' },
-      { criterion: '最終値',        max_points: 1, description: '3/4 が正しい' }
+      { criterion: 'sin²θの変換',  points: 2, desc: 'sin²θ = 1 - cos²θ または (1-cosθ)(1+cosθ) への変換が正しい' },
+      { criterion: '約分',         points: 2, desc: '(1+cosθ) で約分する処理が正しい' },
+      { criterion: '最終値',       points: 1, desc: '3/4 が正しい' }
     ]
   }
 ];
 
+const TOTAL = EXERCISES.length;
+let answered = 0;
 
 // ============================================================
-// 採点ロジック
+// 進捗
 // ============================================================
-
-/** 全角→半角、空白除去 */
-function normalizeBase(s) {
-  return s
-    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
-    .replace(/\s+/g, '')
-    .replace(/　/g, '');
+function updateProgress() {
+  const pct = Math.round(answered / TOTAL * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = answered + ' / ' + TOTAL + ' 解答済み';
 }
-
-/** TEXT_NUMERIC 正規化 */
-function normalizeNumeric(input) {
-  let s = normalizeBase(input);
-  // √ → sqrt
-  s = s.replace(/√/g, 'sqrt');
-  // 分数 a/b → 小数に変換して比較もするが、文字列もキープ
-  return s;
-}
-
-/** 分数を評価（a/b → 数値） */
-function evalFraction(s) {
-  // "3/4" のような単純分数
-  const m = s.match(/^(-?\d+)\/(\d+)$/);
-  if (m) return parseInt(m[1]) / parseInt(m[2]);
-  const n = parseFloat(s);
-  if (!isNaN(n)) return n;
-  return null;
-}
-
-/** TEXT_NUMERIC 比較 */
-function checkNumeric(input, answers) {
-  const norm = normalizeNumeric(input);
-  // まず正規化文字列で比較
-  for (const ans of answers) {
-    if (norm === ans.normalized) return true;
-    if (normalizeNumeric(ans.normalized) === norm) return true;
-  }
-  // 数値比較（分数・小数）
-  const inputVal = evalFraction(norm);
-  if (inputVal !== null) {
-    for (const ans of answers) {
-      const ansVal = evalFraction(ans.normalized);
-      if (ansVal !== null && Math.abs(inputVal - ansVal) < 0.0001) return true;
-    }
-  }
-  return false;
-}
-
-/** TEXT_EXPRESSION 正規化 */
-function normalizeExpression(input) {
-  let s = normalizeBase(input);
-  // θ の各種表記統一
-  s = s.replace(/theta/gi, 'θ');
-  // °表記
-  s = s.replace(/度/g, '°');
-  s = s.replace(/deg/gi, '°');
-  // = の前後スペースは既に除去済み
-  // cos, sin 等の大文字小文字統一
-  s = s.toLowerCase();
-  // カンマ後のスペース既に除去
-  return s;
-}
-
-/** TEXT_EXPRESSION 比較 */
-function checkExpression(input, answers) {
-  const norm = normalizeExpression(input);
-  for (const ans of answers) {
-    const ansNorm = normalizeExpression(ans.normalized);
-    if (norm === ansNorm) return true;
-    // θ= のプレフィックスなし比較
-    const withoutPrefix = norm.replace(/^[a-zθ]+=/, '');
-    const ansWithout = ansNorm.replace(/^[a-zθ]+=/, '');
-    if (withoutPrefix === ansWithout) return true;
-    // 順序無視（カンマ区切りをソート比較）
-    const sortParts = str => str.replace(/^[a-zθ]+=/, '').split(',').sort().join(',');
-    if (sortParts(norm) === sortParts(ansNorm)) return true;
-  }
-  return false;
-}
-
 
 // ============================================================
-// スコア管理
+// KaTeX ヘルパー
 // ============================================================
-let scoreCorrect = 0;
-let scoreTotal = 0;
-
-function updateScore(isCorrect) {
-  scoreTotal++;
-  if (isCorrect) scoreCorrect++;
-  document.getElementById('correctCount').textContent = scoreCorrect;
-  document.getElementById('totalAnswered').textContent = scoreTotal;
-  const pct = scoreTotal > 0 ? Math.round(scoreCorrect / scoreTotal * 100) : 0;
-  document.getElementById('accuracyText').textContent = `正答率: ${pct}%`;
-}
-
-
-// ============================================================
-// UI レンダリング
-// ============================================================
-
-function getSkillName(patternId) {
-  const pat = PATTERNS[patternId];
-  if (!pat) return '';
-  return SKILLS[pat.skill_id]?.display_name || '';
-}
-
-function starsHtml(difficulty) {
-  return '★'.repeat(difficulty) + '☆'.repeat(5 - difficulty);
-}
-
-function renderKaTeX(el) {
+function renderMath(el) {
   if (typeof renderMathInElement === 'function') {
     renderMathInElement(el, {
       delimiters: [
@@ -504,393 +572,332 @@ function renderKaTeX(el) {
   }
 }
 
+// ============================================================
+// カード生成
+// ============================================================
 function buildCard(ex) {
-  const tmpl = TEMPLATE_INFO[ex.input_template];
+  const type = uiType(ex.input_template);
+  const cat = uiCategory(ex.input_template);
   const card = document.createElement('div');
   card.className = 'card';
-  card.dataset.template = ex.input_template;
-  card.dataset.category = tmpl.category;
+  card.dataset.category = cat;
   card.dataset.id = ex.id;
 
-  // ヘッダー
-  const head = document.createElement('div');
-  head.className = 'card-head';
-  head.innerHTML = `
-    <span class="badge badge-skill">${getSkillName(ex.pattern_id)}</span>
-    <span class="badge badge-template">${tmpl.icon} ${tmpl.label}</span>
-    <span class="stars">${starsHtml(ex.difficulty)}</span>
-  `;
-  card.appendChild(head);
+  // --- ヘッダー ---
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="badge badge-skill">${skillName(ex.pattern_id)}</span>
+      <span class="badge badge-type">${uiIcon(ex.input_template)} ${uiLabel(ex.input_template)}</span>
+      <span class="stars">${starsHTML(ex.difficulty)}</span>
+    </div>`;
 
-  // ボディ
   const body = document.createElement('div');
   body.className = 'card-body';
 
-  // 問題文
+  // --- 問題文 ---
   const q = document.createElement('div');
   q.className = 'question-text';
   q.textContent = ex.question_text;
   body.appendChild(q);
 
-  // input_template 別 UI
-  let answered = false;
-  if (ex.input_template === 'SELECT_BASIC') {
-    body.appendChild(buildSelectBasic(ex, card, () => answered, v => answered = v));
-  } else if (ex.input_template === 'SELECT_MULTI') {
-    body.appendChild(buildSelectMulti(ex, card, () => answered, v => answered = v));
-  } else if (ex.input_template === 'TEXT_NUMERIC') {
-    body.appendChild(buildTextNumeric(ex, card, () => answered, v => answered = v));
-  } else if (ex.input_template === 'TEXT_EXPRESSION') {
-    body.appendChild(buildTextExpression(ex, card, () => answered, v => answered = v));
-  } else if (ex.input_template === 'IMAGE_PROCESS') {
-    body.appendChild(buildImageProcess(ex, card));
+  // --- UI本体 ---
+  let done = false;
+  const markDone = () => { if (!done) { done = true; answered++; updateProgress(); } };
+
+  if (type === 'select_basic') {
+    body.appendChild(buildSelectBasic(ex, card, () => done, markDone));
+  } else if (type === 'select_multi') {
+    body.appendChild(buildSelectMulti(ex, card, () => done, markDone));
+  } else {
+    body.appendChild(buildImage(ex, card, () => done, markDone));
   }
 
-  // 解説（折りたたみ）
-  const toggleEl = document.createElement('div');
-  toggleEl.className = 'explanation-toggle';
-  toggleEl.textContent = '▶ 解説を表示';
-  toggleEl.addEventListener('click', () => {
-    const content = toggleEl.nextElementSibling;
-    const open = content.style.display === 'block';
-    content.style.display = open ? 'none' : 'block';
-    toggleEl.textContent = open ? '▶ 解説を表示' : '▼ 解説を非表示';
-  });
-  body.appendChild(toggleEl);
+  // --- 解説トグル ---
+  const togBtn = document.createElement('div');
+  togBtn.className = 'explanation-btn';
+  togBtn.textContent = '▶ 解説を表示';
+  body.appendChild(togBtn);
 
-  const explEl = document.createElement('div');
-  explEl.className = 'explanation-content';
-  explEl.textContent = ex.explanation;
-  body.appendChild(explEl);
+  const togBox = document.createElement('div');
+  togBox.className = 'explanation-box';
+  togBox.textContent = ex.explanation;
+  body.appendChild(togBox);
+
+  togBtn.addEventListener('click', () => {
+    const open = togBox.style.display === 'block';
+    togBox.style.display = open ? 'none' : 'block';
+    togBtn.textContent = open ? '▶ 解説を表示' : '▼ 解説を非表示';
+    if (!open) renderMath(togBox);
+  });
 
   card.appendChild(body);
   return card;
 }
 
-// --- SELECT_BASIC ---
-function buildSelectBasic(ex, card, getAnswered, setAnswered) {
-  const wrap = document.createElement('div');
-  wrap.className = 'choices';
+// ──────────────── SELECT_BASIC ────────────────
+function buildSelectBasic(ex, card, isDone, markDone) {
+  const frag = document.createDocumentFragment();
+  const list = document.createElement('div');
+  list.className = 'choices';
+
   ex.choices.forEach((ch, i) => {
     const item = document.createElement('label');
     item.className = 'choice-item';
-    item.innerHTML = `<input type="radio" name="radio_${ex.id}" value="${i}">
-      <span class="choice-label"><strong>${ch.label}.</strong></span>
-      <span class="choice-expr">$${ch.expr}$</span>`;
-    item.addEventListener('click', () => {
-      if (getAnswered()) return;
-      setAnswered(true);
-      const isCorrect = ch.is_correct;
-      // 全選択肢の状態表示
-      wrap.querySelectorAll('.choice-item').forEach((el, j) => {
-        el.style.cursor = 'default';
-        if (ex.choices[j].is_correct) el.classList.add('correct-choice');
-        if (j === i && !isCorrect) el.classList.add('incorrect-choice');
-      });
-      showResult(card, isCorrect);
-      updateScore(isCorrect);
-    });
-    wrap.appendChild(item);
+    item.innerHTML = `<input type="radio" name="r_${ex.id}" value="${i}">
+      <span class="choice-label-text">${ch.label}.</span>
+      <span>$${ch.expr}$</span>`;
+    list.appendChild(item);
   });
-  return wrap;
+  frag.appendChild(list);
+
+  const row = document.createElement('div');
+  row.className = 'submit-row';
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary';
+  btn.textContent = '解答する';
+  btn.disabled = true;
+  row.appendChild(btn);
+  frag.appendChild(row);
+
+  // ラジオ選択で有効化
+  list.addEventListener('change', () => { if (!isDone()) btn.disabled = false; });
+
+  btn.addEventListener('click', () => {
+    if (isDone()) return;
+    const sel = list.querySelector('input:checked');
+    if (!sel) return;
+    const idx = parseInt(sel.value);
+    markDone();
+    btn.disabled = true;
+
+    list.querySelectorAll('.choice-item').forEach((el, j) => {
+      el.classList.add('locked');
+      if (ex.choices[j].correct) el.classList.add('is-correct');
+      if (j === idx && !ex.choices[j].correct) el.classList.add('is-wrong');
+    });
+
+    const ok = ex.choices[idx].correct;
+    showBanner(card, ok ? 'ok' : 'ng', ok ? '⭕ 正解！' : '❌ 不正解');
+    showExplBtn(card);
+  });
+
+  return frag;
 }
 
-// --- SELECT_MULTI ---
-function buildSelectMulti(ex, card, getAnswered, setAnswered) {
-  const wrap = document.createElement('div');
-  const choicesDiv = document.createElement('div');
-  choicesDiv.className = 'choices';
+// ──────────────── SELECT_MULTI ────────────────
+function buildSelectMulti(ex, card, isDone, markDone) {
+  const frag = document.createDocumentFragment();
+  const list = document.createElement('div');
+  list.className = 'choices';
+
   ex.choices.forEach((ch, i) => {
     const item = document.createElement('label');
     item.className = 'choice-item';
     item.innerHTML = `<input type="checkbox" value="${i}">
-      <span class="choice-label"><strong>${ch.label}.</strong></span>
-      <span class="choice-expr">$${ch.expr}$</span>`;
-    item.querySelector('input').addEventListener('change', () => {
-      if (getAnswered()) return;
-      item.classList.toggle('selected', item.querySelector('input').checked);
-    });
-    choicesDiv.appendChild(item);
+      <span class="choice-label-text">${ch.label}.</span>
+      <span>$${ch.expr}$</span>`;
+    list.appendChild(item);
   });
-  wrap.appendChild(choicesDiv);
+  frag.appendChild(list);
 
+  const row = document.createElement('div');
+  row.className = 'submit-row';
   const btn = document.createElement('button');
   btn.className = 'btn btn-primary';
   btn.textContent = '解答する';
-  btn.style.marginTop = '10px';
+  row.appendChild(btn);
+  frag.appendChild(row);
+
   btn.addEventListener('click', () => {
-    if (getAnswered()) return;
-    setAnswered(true);
+    if (isDone()) return;
+    markDone();
     btn.disabled = true;
-    const selected = new Set();
-    choicesDiv.querySelectorAll('input:checked').forEach(inp => selected.add(parseInt(inp.value)));
+
+    const checked = new Set();
+    list.querySelectorAll('input:checked').forEach(inp => checked.add(parseInt(inp.value)));
     const correctSet = new Set();
-    ex.choices.forEach((ch, i) => { if (ch.is_correct) correctSet.add(i); });
+    ex.choices.forEach((ch, i) => { if (ch.correct) correctSet.add(i); });
 
-    let allCorrect = true;
-    let anyCorrect = false;
-    choicesDiv.querySelectorAll('.choice-item').forEach((el, j) => {
-      el.style.cursor = 'default';
+    let allOk = true;
+    let anyOk = false;
+    list.querySelectorAll('.choice-item').forEach((el, j) => {
+      el.classList.add('locked');
       el.querySelector('input').disabled = true;
-      if (ex.choices[j].is_correct) {
-        el.classList.add('correct-choice');
-        if (selected.has(j)) anyCorrect = true;
-        else allCorrect = false;
+      if (ex.choices[j].correct) {
+        el.classList.add(checked.has(j) ? 'is-correct' : 'is-missed');
+        if (checked.has(j)) anyOk = true; else allOk = false;
       }
-      if (selected.has(j) && !ex.choices[j].is_correct) {
-        el.classList.add('incorrect-choice');
-        allCorrect = false;
+      if (checked.has(j) && !ex.choices[j].correct) {
+        el.classList.add('is-wrong');
+        allOk = false;
       }
     });
-
-    if (allCorrect && selected.size === correctSet.size) {
-      showResult(card, true);
-      updateScore(true);
-    } else if (anyCorrect) {
-      showResult(card, 'partial');
-      updateScore(false);
+    const perfect = allOk && checked.size === correctSet.size;
+    if (perfect) {
+      showBanner(card, 'ok', '⭕ 正解！');
+    } else if (anyOk) {
+      showBanner(card, 'partial', '△ 部分正解');
     } else {
-      showResult(card, false);
-      updateScore(false);
+      showBanner(card, 'ng', '❌ 不正解');
     }
+    showExplBtn(card);
   });
-  wrap.appendChild(btn);
-  return wrap;
+
+  return frag;
 }
 
-// --- TEXT_NUMERIC ---
-function buildTextNumeric(ex, card, getAnswered, setAnswered) {
+// ──────────────── IMAGE（記述系共通）────────────────
+function buildImage(ex, card, isDone, markDone) {
   const wrap = document.createElement('div');
-  const row = document.createElement('div');
-  row.className = 'text-input-area';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.placeholder = '例: 3/4, 0.75, 2sqrt(2)/3';
-  input.setAttribute('inputmode', 'text');
-  const btn = document.createElement('button');
-  btn.className = 'btn btn-primary';
-  btn.textContent = '採点';
-  row.appendChild(input);
-  row.appendChild(btn);
-  wrap.appendChild(row);
+  wrap.className = 'image-area';
 
-  // 模範解答表示用
-  const modelAnswer = ex.answers.find(a => a.is_primary);
+  // アップロードゾーン
+  const zone = document.createElement('div');
+  zone.className = 'upload-zone';
+  zone.id = 'zone_' + ex.id;
+  zone.innerHTML = `
+    <div class="upload-icon">📝</div>
+    <div style="font-size:14px;color:var(--text-muted)">解答を撮影またはファイルで提出</div>
+    <div class="upload-buttons">
+      <button class="btn-camera" id="cam_${ex.id}">📷 カメラで撮影</button>
+      <button class="btn-file" id="fil_${ex.id}">📁 画像を選択</button>
+    </div>
+    <input type="file" accept="image/*" capture="environment" id="finp_cam_${ex.id}" style="display:none">
+    <input type="file" accept="image/*" id="finp_fil_${ex.id}" style="display:none">
+    <img class="upload-preview" id="prev_${ex.id}">`;
+  wrap.appendChild(zone);
 
-  function submit() {
-    if (getAnswered() || !input.value.trim()) return;
-    setAnswered(true);
-    btn.disabled = true;
-    input.readOnly = true;
-    const correct = checkNumeric(input.value.trim(), ex.answers);
-    input.style.borderColor = correct ? 'var(--success)' : 'var(--error)';
-    if (!correct && modelAnswer) {
-      showResult(card, false, `正解: $${modelAnswer.expr}$`);
-    } else {
-      showResult(card, correct);
+  // 採点ボタン
+  const submitRow = document.createElement('div');
+  submitRow.className = 'submit-row';
+  submitRow.style.display = 'none';
+  submitRow.id = 'srow_' + ex.id;
+  const sbtn = document.createElement('button');
+  sbtn.className = 'btn btn-primary';
+  sbtn.textContent = '採点する';
+  sbtn.id = 'sbtn_' + ex.id;
+  submitRow.appendChild(sbtn);
+  wrap.appendChild(submitRow);
+
+  // AI採点ボックス
+  const aiBox = document.createElement('div');
+  aiBox.className = 'ai-grading-box';
+  aiBox.id = 'ai_' + ex.id;
+  wrap.appendChild(aiBox);
+
+  // イベント
+  setTimeout(() => {
+    const camBtn = document.getElementById('cam_' + ex.id);
+    const filBtn = document.getElementById('fil_' + ex.id);
+    const camInp = document.getElementById('finp_cam_' + ex.id);
+    const filInp = document.getElementById('finp_fil_' + ex.id);
+    const preview = document.getElementById('prev_' + ex.id);
+    const srow = document.getElementById('srow_' + ex.id);
+
+    if (camBtn) camBtn.addEventListener('click', () => camInp.click());
+    if (filBtn) filBtn.addEventListener('click', () => filInp.click());
+
+    function handleFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        zone.classList.add('has-file');
+        srow.style.display = 'flex';
+      };
+      reader.readAsDataURL(file);
     }
-    updateScore(correct);
-  }
-  btn.addEventListener('click', submit);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-  return wrap;
-}
+    if (camInp) camInp.addEventListener('change', e => handleFile(e.target.files[0]));
+    if (filInp) filInp.addEventListener('change', e => handleFile(e.target.files[0]));
 
-// --- TEXT_EXPRESSION ---
-function buildTextExpression(ex, card, getAnswered, setAnswered) {
-  const wrap = document.createElement('div');
-  const row = document.createElement('div');
-  row.className = 'text-input-area';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.placeholder = '例: θ=60°,120° / cosC=-11/24 / 30';
-  const btn = document.createElement('button');
-  btn.className = 'btn btn-primary';
-  btn.textContent = '採点';
-  row.appendChild(input);
-  row.appendChild(btn);
-  wrap.appendChild(row);
+    // 採点
+    const sBtn = document.getElementById('sbtn_' + ex.id);
+    if (sBtn) sBtn.addEventListener('click', () => {
+      if (isDone()) return;
+      markDone();
+      sBtn.disabled = true;
 
-  const modelAnswer = ex.answers.find(a => a.is_primary);
+      const box = document.getElementById('ai_' + ex.id);
+      box.style.display = 'block';
+      box.innerHTML = '<span class="ai-spinner"></span> AI採点中…';
 
-  function submit() {
-    if (getAnswered() || !input.value.trim()) return;
-    setAnswered(true);
-    btn.disabled = true;
-    input.readOnly = true;
-    const correct = checkExpression(input.value.trim(), ex.answers);
-    input.style.borderColor = correct ? 'var(--success)' : 'var(--error)';
-    if (!correct && modelAnswer) {
-      showResult(card, false, `正解: $${modelAnswer.expr}$`);
-    } else {
-      showResult(card, correct);
-    }
-    updateScore(correct);
-  }
-  btn.addEventListener('click', submit);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-  return wrap;
-}
+      setTimeout(() => {
+        const cost = ex.grading_cost || 5;
+        let html = `<div style="margin-bottom:10px"><span class="cost-tag">推定コスト: ¥${cost}</span></div>`;
+        html += '<div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">この問題はAI採点が必要です。デモモードのため模範解答を表示します。</div>';
 
-// --- IMAGE_PROCESS ---
-function buildImageProcess(ex, card) {
-  const wrap = document.createElement('div');
+        // 模範解答
+        const ma = ex.model_answer || ex.explanation;
+        html += `<div class="model-answer"><div class="model-answer-label">模範解答</div><div>${ma}</div></div>`;
 
-  const upload = document.createElement('div');
-  upload.className = 'image-upload-area';
-  upload.innerHTML = `
-    <div class="icon">📸</div>
-    <p>画像をアップロード or カメラで撮影</p>
-    <input type="file" accept="image/*" capture="environment" style="display:none" id="file_${ex.id}">
-    <button class="btn btn-primary" style="margin-top:10px" onclick="document.getElementById('file_${ex.id}').click()">ファイルを選択</button>
-  `;
-  wrap.appendChild(upload);
+        // ルーブリック
+        if (ex.rubrics && ex.rubrics.length) {
+          const total = ex.rubrics.reduce((s, r) => s + r.points, 0);
+          html += '<table class="rubric-table"><thead><tr><th>評価基準</th><th>配点</th><th>詳細</th></tr></thead><tbody>';
+          ex.rubrics.forEach(r => {
+            html += `<tr><td>${r.criterion}</td><td style="text-align:center">${r.points}点</td><td>${r.desc}</td></tr>`;
+          });
+          html += `<tr style="font-weight:600"><td>合計</td><td style="text-align:center">${total}点</td><td></td></tr>`;
+          html += '</tbody></table>';
+        }
 
-  const cost = document.createElement('div');
-  cost.className = 'cost-notice';
-  cost.innerHTML = `📸 この問題はAI採点が必要です（コスト: ¥${ex.grading_cost || 5}/回）<br>現在はデモモードのため、模範解答とルーブリックを表示します。`;
-  wrap.appendChild(cost);
-
-  // ルーブリック表示
-  const rubricWrap = document.createElement('div');
-  rubricWrap.style.display = 'none';
-  rubricWrap.style.marginTop = '12px';
-
-  if (ex.rubrics && ex.rubrics.length > 0) {
-    const label = document.createElement('div');
-    label.style.fontSize = '13px';
-    label.style.fontWeight = '500';
-    label.style.marginBottom = '6px';
-    label.textContent = '採点ルーブリック:';
-    rubricWrap.appendChild(label);
-
-    const table = document.createElement('table');
-    table.className = 'rubric-table';
-    table.innerHTML = `<thead><tr><th>評価基準</th><th>配点</th><th>詳細</th></tr></thead>`;
-    const tbody = document.createElement('tbody');
-    let totalPoints = 0;
-    ex.rubrics.forEach(r => {
-      totalPoints += r.max_points;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${r.criterion}</td><td>${r.max_points}点</td><td>${r.description}</td>`;
-      tbody.appendChild(tr);
+        box.innerHTML = html;
+        renderMath(box);
+        showExplBtn(card);
+      }, 1200);
     });
-    const tfootTr = document.createElement('tr');
-    tfootTr.innerHTML = `<td><strong>合計</strong></td><td><strong>${totalPoints}点</strong></td><td></td>`;
-    tbody.appendChild(tfootTr);
-    table.appendChild(tbody);
-    rubricWrap.appendChild(table);
-  }
-  wrap.appendChild(rubricWrap);
-
-  // ファイル選択後
-  const fileInput = upload.querySelector('input[type=file]');
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files.length > 0) {
-      upload.innerHTML = `<div class="icon">✅</div><p>画像がアップロードされました</p><p style="font-size:12px;color:var(--text-muted)">${fileInput.files[0].name}</p>`;
-      cost.style.display = 'block';
-      rubricWrap.style.display = 'block';
-      // 解説も表示
-      const toggle = card.querySelector('.explanation-toggle');
-      if (toggle) {
-        toggle.style.display = 'block';
-        toggle.textContent = '▼ 解説を非表示';
-        toggle.nextElementSibling.style.display = 'block';
-        renderKaTeX(toggle.nextElementSibling);
-      }
-    }
-  });
+  }, 0);
 
   return wrap;
 }
 
-// --- 結果表示 ---
-function showResult(card, result, extra) {
+// ============================================================
+// ヘルパー
+// ============================================================
+function showBanner(card, type, msg) {
   const body = card.querySelector('.card-body');
-  const div = document.createElement('div');
-  div.className = 'result-area';
-  if (result === true) {
-    div.className += ' result-correct';
-    div.innerHTML = '⭕ 正解！';
-    card.classList.add('correct');
-  } else if (result === 'partial') {
-    div.className += ' result-partial';
-    div.innerHTML = '△ 部分正解（一部合っていますが、過不足があります）';
-    card.classList.add('incorrect');
-  } else {
-    div.className += ' result-incorrect';
-    div.innerHTML = '❌ 不正解' + (extra ? `　${extra}` : '');
-    card.classList.add('incorrect');
-  }
-  body.appendChild(div);
-  renderKaTeX(div);
-
-  // 解説を表示可能にする
-  const toggle = card.querySelector('.explanation-toggle');
-  if (toggle) {
-    toggle.style.display = 'block';
-  }
+  const b = document.createElement('div');
+  b.className = 'result-banner ' + type;
+  b.textContent = msg;
+  body.appendChild(b);
+  card.classList.add(type === 'ok' ? 'result-ok' : type === 'partial' ? 'result-partial' : 'result-ng');
 }
-
+function showExplBtn(card) {
+  const btn = card.querySelector('.explanation-btn');
+  if (btn) btn.style.display = 'block';
+}
 
 // ============================================================
 // フィルタリング
 // ============================================================
-function applyFilter(category) {
-  document.querySelectorAll('.card').forEach(card => {
-    if (category === 'all') {
-      card.style.display = '';
-    } else {
-      card.style.display = card.dataset.category === category ? '' : 'none';
-    }
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const f = btn.dataset.filter;
+    document.querySelectorAll('.card').forEach(c => {
+      c.style.display = (f === 'all' || c.dataset.category === f) ? '' : 'none';
+    });
   });
-}
-
+});
 
 // ============================================================
 // 初期化
 // ============================================================
 function init() {
   const list = document.getElementById('cardList');
-  EXERCISES.forEach(ex => {
-    const card = buildCard(ex);
-    list.appendChild(card);
-  });
-
-  // KaTeX レンダリング
-  if (typeof renderMathInElement === 'function') {
-    renderKaTeX(list);
-  } else {
-    // auto-render がまだロードされていない場合
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => renderKaTeX(list), 200);
-    });
-  }
-
-  // フィルターボタン
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      applyFilter(btn.dataset.filter);
-    });
-  });
+  EXERCISES.forEach(ex => list.appendChild(buildCard(ex)));
+  renderMath(list);
+  updateProgress();
 }
 
-// auto-render のロード待ち
-function waitForKaTeX(cb) {
-  if (typeof renderMathInElement === 'function') { cb(); return; }
-  let attempts = 0;
-  const iv = setInterval(() => {
-    attempts++;
-    if (typeof renderMathInElement === 'function' || attempts > 50) {
-      clearInterval(iv);
-      cb();
-    }
-  }, 100);
-}
-
-waitForKaTeX(init);
+// auto-render 読み込み待ち
+(function wait() {
+  if (typeof renderMathInElement === 'function') return init();
+  let n = 0;
+  const iv = setInterval(() => { if (typeof renderMathInElement === 'function' || ++n > 50) { clearInterval(iv); init(); } }, 100);
+})();
 </script>
 </body>
 </html>
