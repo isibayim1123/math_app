@@ -1411,6 +1411,7 @@ async function analyze() {
         let graded = false;
 
         // まずサーバー側プロキシ（/api/grade）を試行
+        let serverStatus = '';
         try {
             const response = await fetch('/api/grade', {
                 method: 'POST',
@@ -1428,23 +1429,36 @@ async function analyze() {
                 processingTime = data.processingTime || Math.round(performance.now() - startTime);
                 tokens = data.tokens;
                 graded = true;
+            } else {
+                const errData = await response.json().catch(() => null);
+                serverStatus = 'サーバー応答: HTTP ' + response.status + (errData?.error ? ' - ' + errData.error : '');
             }
-            // 404/503等 → クライアント側にフォールバック
         } catch (e) {
-            // ネットワークエラー等 → クライアント側にフォールバック
+            serverStatus = 'サーバー接続エラー: ' + (e.message || e);
         }
 
-        // サーバー側が使えない場合、クライアント側APIキーで直接呼び出し
-        if (!graded) {
-            if (!apiKey) {
-                btn.classList.remove('loading'); btn.disabled = false;
-                // API設定セクションを表示してキー入力を促す
-                document.getElementById('apiKeySection').style.display = '';
-                document.getElementById('apiKeySection').classList.add('open');
-                document.getElementById('settingsBtn').style.display = '';
-                renderError('OpenAI APIキーが必要です。画面上部の⚙️ API設定からキーを入力してください。');
-                return;
+        // サーバー側が使えない場合、/api/config で状況確認
+        if (!graded && !apiKey) {
+            let configInfo = '';
+            try {
+                const configRes = await fetch('/api/config');
+                if (configRes.ok) {
+                    const config = await configRes.json();
+                    configInfo = 'config応答: hasOpenAI=' + config.hasOpenAI + ', supabaseUrl=' + (config.supabaseUrl ? '設定済み' : '未設定');
+                } else {
+                    configInfo = '/api/config: HTTP ' + configRes.status;
+                }
+            } catch (e2) {
+                configInfo = '/api/config 接続不可: ' + (e2.message || e2);
             }
+
+            btn.classList.remove('loading'); btn.disabled = false;
+            document.getElementById('apiKeySection').style.display = '';
+            document.getElementById('apiKeySection').classList.add('open');
+            document.getElementById('settingsBtn').style.display = '';
+            renderError('OpenAI APIで採点できませんでした。\n' + serverStatus + '\n' + configInfo + '\n\n⚙️ API設定からOpenAI APIキーを直接入力するか、Vercelの環境変数 OPENAI_API_KEY を確認してください。');
+            return;
+        }
             const response = await fetch('https://api.openai.com/v1/responses', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
