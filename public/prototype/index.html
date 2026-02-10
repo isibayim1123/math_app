@@ -967,6 +967,101 @@ function renderSelectMulti(exercise, answerArea, onDone) {
     });
 }
 
+// ═══ 学習履歴の記録 ═══
+
+// 仮ユーザーID（認証未実装のため固定値）
+const ANONYMOUS_USER_ID = '00000000-0000-0000-0000-000000000000';
+
+// pattern_id → skill_id のキャッシュ
+const patternToSkillCache = {};
+
+async function getSkillIdForPattern(patternId) {
+    if (patternToSkillCache[patternId]) return patternToSkillCache[patternId];
+    if (!supabaseClient) return null;
+    const { data } = await supabaseClient
+        .from('patterns').select('skill_id').eq('id', patternId).limit(1);
+    if (data && data.length > 0) {
+        patternToSkillCache[patternId] = data[0].skill_id;
+        return data[0].skill_id;
+    }
+    return null;
+}
+
+async function saveAnswerLog(exercise, isCorrect, score, mode, answerRaw, timeSpentSec) {
+    if (!supabaseClient) return;
+    try {
+        await supabaseClient.from('answer_logs').insert({
+            user_id: ANONYMOUS_USER_ID,
+            exercise_id: exercise.id,
+            mode: mode || 'self_study',
+            answer_raw: answerRaw || null,
+            is_correct: isCorrect,
+            score: score,
+            grading_method: score !== null ? 'llm_gpt4' : 'local',
+            grading_cost: score !== null ? (exercise.grading_cost || 0) : 0,
+            time_spent_sec: timeSpentSec || null,
+            attempt_number: 1,
+            answered_at: new Date().toISOString(),
+        });
+    } catch (e) {
+        console.warn('answer_log 保存失敗:', e);
+    }
+}
+
+async function updateSkillMastery(exercise, isCorrect) {
+    if (!supabaseClient || !exercise.pattern_id) return;
+    const skillId = await getSkillIdForPattern(exercise.pattern_id);
+    if (!skillId) return;
+
+    try {
+        // 現在の習熟度を取得
+        const { data: existing } = await supabaseClient
+            .from('skill_mastery')
+            .select('*')
+            .eq('user_id', ANONYMOUS_USER_ID)
+            .eq('skill_id', skillId)
+            .limit(1);
+
+        const now = new Date().toISOString();
+        if (existing && existing.length > 0) {
+            const row = existing[0];
+            const total = row.total_attempts + 1;
+            const correct = row.correct_count + (isCorrect ? 1 : 0);
+            const accuracy = total > 0 ? correct / total : 0;
+            const streak = isCorrect ? row.streak + 1 : 0;
+            const bestStreak = Math.max(row.best_streak, streak);
+
+            // 習熟度レベル自動判定
+            let mastery = 'not_started';
+            if (total >= 3 && accuracy >= 0.9) mastery = 'mastered';
+            else if (total >= 2 && accuracy >= 0.7) mastery = 'proficient';
+            else if (total >= 2 && accuracy >= 0.4) mastery = 'developing';
+            else if (total >= 1) mastery = 'struggling';
+
+            await supabaseClient.from('skill_mastery')
+                .update({ total_attempts: total, correct_count: correct, accuracy, streak, best_streak: bestStreak, mastery, last_practiced: now, updated_at: now })
+                .eq('id', row.id);
+        } else {
+            // 新規作成
+            const mastery = isCorrect ? 'developing' : 'struggling';
+            await supabaseClient.from('skill_mastery').insert({
+                user_id: ANONYMOUS_USER_ID,
+                skill_id: skillId,
+                mastery,
+                total_attempts: 1,
+                correct_count: isCorrect ? 1 : 0,
+                accuracy: isCorrect ? 1.0 : 0.0,
+                last_practiced: now,
+                streak: isCorrect ? 1 : 0,
+                best_streak: isCorrect ? 1 : 0,
+                updated_at: now,
+            });
+        }
+    } catch (e) {
+        console.warn('skill_mastery 更新失敗:', e);
+    }
+}
+
 // ═══ Supabase演習の状態管理 ═══
 let currentSubUnitExercises = null; // Supabaseから取得した演習配列
 let currentExerciseIndex = 0;
@@ -1446,6 +1541,14 @@ async function analyze() {
 
         const result = JSON.parse(rawText);
         renderResults(result, processingTime, tokens);
+
+        // フリー採点の履歴を保存
+        if (supabaseClient) {
+            const score = result.score ?? 0;
+            const isCorrect = score >= 7;
+            const freeExercise = { id: 'free_grading_' + Date.now(), pattern_id: null };
+            saveAnswerLog(freeExercise, null, score, 'free_grading', JSON.stringify(result), Math.round(processingTime / 1000));
+        }
     } catch (err) {
         renderError(err.message);
     } finally {
@@ -1905,12 +2008,16 @@ function renderProblemScreen(data) {
             uploadMain.style.display = 'none';
             answerArea.style.display = 'block';
             renderSelectBasic(exercise, answerArea, function(correct) {
+                saveAnswerLog(exercise, correct, null, 'self_study', null, null);
+                updateSkillMastery(exercise, correct);
                 addSupabaseExerciseNav(data);
             });
         } else if (tmpl === 'SELECT_MULTI' && exercise.choices && exercise.choices.length > 0) {
             uploadMain.style.display = 'none';
             answerArea.style.display = 'block';
             renderSelectMulti(exercise, answerArea, function(correct) {
+                saveAnswerLog(exercise, correct, null, 'self_study', null, null);
+                updateSkillMastery(exercise, correct);
                 addSupabaseExerciseNav(data);
             });
         } else {
