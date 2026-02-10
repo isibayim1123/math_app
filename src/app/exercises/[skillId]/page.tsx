@@ -31,16 +31,26 @@ async function getExercises(skillId: string) {
 
   const patternIds = patterns.map((p: { id: string }) => p.id);
 
-  // 演習一覧
-  const { data: exercises } = await supabase
+  // 演習一覧（input_template を明示的に取得）
+  const { data: exercises, error: exercisesError } = await supabase
     .from("exercises")
-    .select("*")
+    .select("id, pattern_id, sort_order, input_template, difficulty, question_text, question_expr, explanation, grading_cost, created_at, updated_at")
     .in("pattern_id", patternIds)
     .order("sort_order");
+
+  if (exercisesError) {
+    console.error("[exercises] Supabase error:", exercisesError);
+  }
 
   if (!exercises || exercises.length === 0) {
     return { skill: skill as Skill, exercises: [] as ExerciseWithDetails[] };
   }
+
+  // デバッグ: input_template の値をサーバーログに出力
+  console.log(
+    "[exercises] input_template values:",
+    exercises.map((e: Exercise) => ({ id: e.id, input_template: e.input_template }))
+  );
 
   const exerciseIds = exercises.map((e: Exercise) => e.id);
 
@@ -61,6 +71,12 @@ async function getExercises(skillId: string) {
       .in("exercise_id", exerciseIds)
       .order("sort_order"),
   ]);
+
+  // デバッグ: 子テーブルのエラー確認
+  if (choicesRes.error) console.error("[exercise_choices] error:", choicesRes.error);
+  if (answersRes.error) console.error("[exercise_answers] error:", answersRes.error);
+  if (rubricsRes.error) console.error("[exercise_rubrics] error:", rubricsRes.error);
+  console.log("[exercise_choices] count:", (choicesRes.data ?? []).length);
 
   // exercise_id → 子データ マッピング
   const choicesMap = new Map<string, ExerciseChoice[]>();
