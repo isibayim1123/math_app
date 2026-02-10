@@ -1396,9 +1396,6 @@ ${UNIT_KEY_LIST}
 // ═══ API Call ═══
 async function analyze() {
     if (!selectedFile || !base64Image) return;
-    // サーバー設定の取得完了を待つ
-    await autoConfigPromise;
-    if (!serverHasOpenAI && !apiKey) { renderError('OpenAI APIキーが設定されていません。サーバー管理者に確認してください。'); return; }
 
     const btn = document.getElementById('analyzeBtn');
     btn.classList.add('loading'); btn.disabled = true;
@@ -1411,9 +1408,10 @@ async function analyze() {
         let rawText = '';
         let processingTime = 0;
         let tokens = null;
+        let graded = false;
 
-        if (serverHasOpenAI) {
-            // サーバー側プロキシ経由（APIキー不要）
+        // まずサーバー側プロキシ（/api/grade）を試行
+        try {
             const response = await fetch('/api/grade', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1424,17 +1422,30 @@ async function analyze() {
                 }),
             });
 
-            if (!response.ok) {
+            if (response.ok) {
+                const data = await response.json();
+                rawText = data.rawText || '';
+                processingTime = data.processingTime || Math.round(performance.now() - startTime);
+                tokens = data.tokens;
+                graded = true;
+            } else if (response.status !== 503) {
+                // 503以外のエラーはそのまま報告
                 const errData = await response.json().catch(() => null);
                 throw new Error(errData?.error || 'HTTP ' + response.status);
             }
+            // 503 = サーバーにAPIキー未設定 → クライアント側にフォールバック
+        } catch (e) {
+            if (e.message && !e.message.includes('Failed to fetch')) throw e;
+            // ネットワークエラー（ローカル環境等）→ クライアント側にフォールバック
+        }
 
-            const data = await response.json();
-            rawText = data.rawText || '';
-            processingTime = data.processingTime || Math.round(performance.now() - startTime);
-            tokens = data.tokens;
-        } else {
-            // クライアント側直接呼び出し（ローカルAPIキー使用）
+        // サーバー側が使えない場合、クライアント側APIキーで直接呼び出し
+        if (!graded) {
+            if (!apiKey) {
+                btn.classList.remove('loading'); btn.disabled = false;
+                renderError('OpenAI APIキーが設定されていません。Vercelの環境変数 OPENAI_API_KEY を確認してください。');
+                return;
+            }
             const response = await fetch('https://api.openai.com/v1/responses', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
