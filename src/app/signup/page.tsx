@@ -24,7 +24,7 @@ export default function SignupPage() {
 
     setLoading(true);
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { display_name: displayName } },
@@ -32,6 +32,15 @@ export default function SignupPage() {
 
     if (signUpError) {
       setError(signUpError.message);
+      setLoading(false);
+      return;
+    }
+
+    // メール確認が有効な場合、session が null になる
+    if (data.user && !data.session) {
+      setError(
+        "メール確認が有効になっています。Supabase ダッシュボード > Authentication > Providers > Email で「Confirm email」を OFF にしてから再度お試しください。"
+      );
       setLoading(false);
       return;
     }
