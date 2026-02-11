@@ -1,12 +1,10 @@
 import { supabase } from "./supabase";
 
-// 認証未実装のため固定ユーザーID（プロトタイプと共通）
-const ANONYMOUS_USER_ID = "00000000-0000-0000-0000-000000000000";
-
 /**
  * 回答ログを保存
  */
 export async function saveAnswerLog(params: {
+  userId: string;
   exerciseId: string;
   isCorrect: boolean | null;
   score?: number | null;
@@ -15,7 +13,7 @@ export async function saveAnswerLog(params: {
   timeSpentSec?: number | null;
 }) {
   const { error } = await supabase.from("answer_logs").insert({
-    user_id: ANONYMOUS_USER_ID,
+    user_id: params.userId,
     exercise_id: params.exerciseId,
     mode: params.mode ?? "self_study",
     answer_raw: params.answerRaw ?? null,
@@ -36,6 +34,7 @@ export async function saveAnswerLog(params: {
  * スキル習熟度を更新
  */
 export async function updateSkillMastery(
+  userId: string,
   skillId: string,
   correctCount: number,
   totalCount: number
@@ -55,7 +54,7 @@ export async function updateSkillMastery(
   const { data: existing } = await supabase
     .from("skill_mastery")
     .select("*")
-    .eq("user_id", ANONYMOUS_USER_ID)
+    .eq("user_id", userId)
     .eq("skill_id", skillId)
     .limit(1);
 
@@ -86,7 +85,7 @@ export async function updateSkillMastery(
     if (error) console.error("skill_mastery UPDATE失敗:", error.message);
   } else {
     const { error } = await supabase.from("skill_mastery").insert({
-      user_id: ANONYMOUS_USER_ID,
+      user_id: userId,
       skill_id: skillId,
       mastery,
       total_attempts: totalCount,

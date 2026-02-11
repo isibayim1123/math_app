@@ -57,6 +57,7 @@ out/
 
 # ===== ビルド生成ファイル =====
 public/prototype/config.js
+tsconfig.tsbuildinfo
 
 # ===== その他 =====
 *.log

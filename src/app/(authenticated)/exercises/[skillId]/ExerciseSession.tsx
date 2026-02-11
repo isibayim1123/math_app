@@ -6,6 +6,7 @@ import type { Skill, ExerciseWithDetails } from "@/types/database";
 import { MathText } from "@/components/ui/MathText";
 import { ExerciseRenderer } from "@/components/exercise/ExerciseRenderer";
 import { saveAnswerLog, updateSkillMastery } from "@/lib/learning-history";
+import { useUser } from "@/contexts/UserContext";
 
 const TEMPLATE_ICON: Record<string, string> = {
   SELECT_BASIC: "🔘",
@@ -28,6 +29,7 @@ export function ExerciseSession({
   skill: Skill;
   exercises: ExerciseWithDetails[];
 }) {
+  const { userId } = useUser();
   const total = exercises.length;
   const [current, setCurrent] = useState(0);
   const [results, setResults] = useState<(boolean | null)[]>(
@@ -48,6 +50,7 @@ export function ExerciseSession({
 
     // 回答ログをSupabaseに保存
     saveAnswerLog({
+      userId,
       exerciseId: ex.id,
       isCorrect: correct,
     });
@@ -69,7 +72,7 @@ export function ExerciseSession({
     const correctCnt = results.filter((r) => r === true).length;
     const answeredCnt = results.filter((r) => r !== null).length;
     if (answeredCnt > 0) {
-      updateSkillMastery(skill.id, correctCnt, answeredCnt);
+      updateSkillMastery(userId, skill.id, correctCnt, answeredCnt);
     }
   }, [finished, results, skill.id]);
 
